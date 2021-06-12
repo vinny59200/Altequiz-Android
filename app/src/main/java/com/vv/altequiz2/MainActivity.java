@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         aButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("A").execute();
             }
         });
 
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         bButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("B").execute();
             }
         });
 
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         cButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("C").execute();
             }
         });
 
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         dButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("D").execute();
             }
         });
 
@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         eButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("E").execute();
             }
         });
 
@@ -98,11 +98,11 @@ public class MainActivity extends AppCompatActivity {
         fButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new Task().execute();
+                new Task("F").execute();
             }
         });
 
-        new Task().execute();
+        new Task("A").execute();
     }
 
     @Override
@@ -116,6 +116,12 @@ public class MainActivity extends AppCompatActivity {
 
         public static final String URL_POST = "https://altequiz.osc-fr1.scalingo.io/send/";
         public static final String URL_GET = "https://altequiz.osc-fr1.scalingo.io/question/";
+        String answerFromFront = null;
+
+        public Task(String answer) {
+            super();
+            answerFromFront = answer;
+        }
 
         @Override
         protected String doInBackground(Void... params) {
@@ -153,7 +159,14 @@ public class MainActivity extends AppCompatActivity {
             try (Response response = client.newCall(request).execute()) {
                 bar(60);
                 questionJson = response.body().string();
-            } catch (IOException e) {
+                try {
+                    Question question = new Gson().fromJson(questionJson, Question.class);
+                    question.setAnswer(answerFromFront);
+                    questionJson = new Gson().toJson(question, Question.class);
+                } catch (Exception e) {
+                    Log.e("vv", "getJson " + e.getMessage());
+                }
+            } catch (Exception e) {
                 Log.e("vv", "getJson " + e.getMessage());
             }
 
@@ -165,11 +178,11 @@ public class MainActivity extends AppCompatActivity {
             super.onPostExecute(result);
 
             bar(100);
-            boolean error=false;
+            boolean error = false;
             try {
                 question = new Gson().fromJson(result, Question.class);
-            }catch(Exception e){
-                error=true;
+            } catch (Exception e) {
+                error = true;
                 questionTextView.setText("CLOUD HS. REDEPLOY");
                 answerTextView.setVisibility(View.INVISIBLE);
                 nextQuestionId = getRandomQuestionId();
@@ -180,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                 eButton.setVisibility(View.INVISIBLE);
                 fButton.setVisibility(View.INVISIBLE);
             }
-            if(!error) {
+            if (!error) {
                 questionTextView.setText(question.getQuestion());
                 answerTextView.setText(question.getAnswer());
                 nextQuestionId = (int) question.getId();
