@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.util.Random;
 
 
 import okhttp3.OkHttpClient;
@@ -27,34 +28,37 @@ public class MainActivity extends AppCompatActivity {
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
-    TextView et;
+    TextView answerTextView;
     private static ProgressBar progressBar;
     Question question;
-    TextView t;
-    Button toggle;
+    TextView questionTextView;
+    Button aButton;
     Button bButton;
     Button cButton;
     Button dButton;
     Button eButton;
+    Button fButton;
 
-    int nextQuestionId=3;
+    int nextQuestionId = new Random().nextInt(170) + 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        et = (TextView) findViewById(R.id.AutoCompleteTextView01);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar1);
-        t = (TextView) findViewById(R.id.textview);
-        toggle = (Button) findViewById(R.id.button);
-        toggle.setOnClickListener(new View.OnClickListener() {
+        answerTextView = (TextView) findViewById(R.id.answertv);
+        progressBar = (ProgressBar) findViewById(R.id.bar);
+        questionTextView = (TextView) findViewById(R.id.textview);
+
+        aButton = (Button) findViewById(R.id.abtn);
+        aButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 new Task().execute();
             }
         });
-        bButton = (Button) findViewById(R.id.button2);
+
+        bButton = (Button) findViewById(R.id.bbtn);
         bButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -62,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        cButton = (Button) findViewById(R.id.button3);
+        cButton = (Button) findViewById(R.id.cbtn);
         cButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -70,8 +74,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        dButton = (Button) findViewById(R.id.button4);
+        dButton = (Button) findViewById(R.id.dbtn);
         dButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -79,111 +82,109 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        eButton = (Button) findViewById(R.id.button5);
+        eButton = (Button) findViewById(R.id.ebtn);
         eButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 new Task().execute();
             }
         });
+
+        fButton = (Button) findViewById(R.id.fbtn);
+        fButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Task().execute();
+            }
+        });
+
         new Task().execute();
     }
 
     @Override
     protected void onPause() {
-
         super.onPause();
-
         System.exit(0);
-
     }
 
 
     private class Task extends AsyncTask<Void, Void, String> {
 
+        public static final String URL_POST = "https://altequiz.osc-fr1.scalingo.io/send/";
+        public static final String URL_GET = "https://altequiz.osc-fr1.scalingo.io/question/";
 
         @Override
         protected String doInBackground(Void... params) {
 
-            System.out.println("vv in doinbackgrouund");
-            progressBar.setProgress(20);
+            bar(20);
             OkHttpClient client = new OkHttpClient();
             RequestBody body = RequestBody.create(JSON, getJson());
-
             Request request = new Request.Builder()
-                    .url("https://altequiz.osc-fr1.scalingo.io/send/")
+                    .url(URL_POST)
                     .post(body)
                     .build();
-            System.out.println("vv in doinbackgrouund 3");
-            progressBar.setProgress(80);
-            String text = null;
+            bar(80);
+            String questionJson = null;
             try (Response response = client.newCall(request).execute()) {
-                System.out.println("vv in doinbackgrouund 4");
-                progressBar.setProgress(100);
-                text = response.body().string();
-                System.out.println("vv in doinbackgrouund 5, text:" + text);
+                bar(100);
+                questionJson = response.body().string();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e("vv", "task get question json post " + e.getMessage());
             }
 
-            return text;
+            return questionJson;
+        }
+
+        private void bar(int step) {
+            progressBar.setProgress(step);
         }
 
         private String getJson() {
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder()
-                    .url("https://altequiz.osc-fr1.scalingo.io/question/"+nextQuestionId)
+                    .url(URL_GET + nextQuestionId)
                     .build();
-            System.out.println("vv in doinbackgrouund 0");
-            progressBar.setProgress(40);
-            String text = null;
+            bar(40);
+            String questionJson = null;
             try (Response response = client.newCall(request).execute()) {
-                System.out.println("vv in doinbackgrouund 1");
-                progressBar.setProgress(60);
-                text = response.body().string();
-                System.out.println("vv in doinbackgrouund 2, text:" + text);
+                bar(60);
+                questionJson = response.body().string();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e("vv", "getJson " + e.getMessage());
             }
 
-            return text;
+            return questionJson;
         }
 
         @Override
         protected void onPostExecute(String result) {
-            // TODO Auto-generated method stub
             super.onPostExecute(result);
 
-            progressBar.setProgress(100);
-            System.out.println("VV gson"+result);
-
+            bar(100);
             question = new Gson().fromJson(result, Question.class);
-            System.out.println("vv array answer size:"+question.getAnswer());
-            System.out.println("vv array answer size:"+question.getAnswer().split(",").length);
-            et.setText(result);
-            String answer = "";
-            answer = question.getAnswer();
-            if (answer.length() > 1) answer = question.getAnswer().substring(0, 1);
-            t.setText(question.getQuestion());
-            nextQuestionId=(int)question.getId();
-
+            questionTextView.setText(question.getQuestion());
+            answerTextView.setText(question.getAnswer());
+            nextQuestionId = (int) question.getId();
 
             cButton.setVisibility(View.VISIBLE);
             dButton.setVisibility(View.VISIBLE);
             eButton.setVisibility(View.VISIBLE);
+            fButton.setVisibility(View.VISIBLE);
             if (Integer.valueOf(question.getChoices()) == 2) {
                 cButton.setVisibility(View.INVISIBLE);
                 dButton.setVisibility(View.INVISIBLE);
                 eButton.setVisibility(View.INVISIBLE);
+                fButton.setVisibility(View.INVISIBLE);
             } else if (Integer.valueOf(question.getChoices()) == 3) {
                 dButton.setVisibility(View.INVISIBLE);
                 eButton.setVisibility(View.INVISIBLE);
+                fButton.setVisibility(View.INVISIBLE);
             } else if (Integer.valueOf(question.getChoices()) == 4) {
                 eButton.setVisibility(View.INVISIBLE);
+                fButton.setVisibility(View.INVISIBLE);
+            } else if (Integer.valueOf(question.getChoices()) == 5) {
+                fButton.setVisibility(View.INVISIBLE);
             }
-
-
         }
     }
 
@@ -195,14 +196,11 @@ public class MainActivity extends AppCompatActivity {
         private int karma;
         private String choices;
 
-
         public Question(int id, String question, String answer, int karma) {
             this.id = id;
-            this.question = question; //Log.e("vv", "question " + question);
-            this.answer = answer; //Log.e("vv", "answer " + answer);
+            this.question = question;
+            this.answer = answer;
             this.karma = karma;
-
-
         }
 
         public String getQuestion() {
