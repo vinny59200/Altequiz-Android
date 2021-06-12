@@ -39,7 +39,11 @@ public class MainActivity extends AppCompatActivity {
     Button eButton;
     Button fButton;
 
-    int nextQuestionId = new Random().nextInt(170) + 2;
+    int nextQuestionId = getRandomQuestionId();
+
+    private int getRandomQuestionId() {
+        return new Random().nextInt(170) + 2;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,29 +165,45 @@ public class MainActivity extends AppCompatActivity {
             super.onPostExecute(result);
 
             bar(100);
-            question = new Gson().fromJson(result, Question.class);
-            questionTextView.setText(question.getQuestion());
-            answerTextView.setText(question.getAnswer());
-            nextQuestionId = (int) question.getId();
-
-            cButton.setVisibility(View.VISIBLE);
-            dButton.setVisibility(View.VISIBLE);
-            eButton.setVisibility(View.VISIBLE);
-            fButton.setVisibility(View.VISIBLE);
-            if (Integer.valueOf(question.getChoices()) == 2) {
+            boolean error=false;
+            try {
+                question = new Gson().fromJson("<vv]", Question.class);
+            }catch(Exception e){
+                error=true;
+                questionTextView.setText("CLOUD HS. REDEPLOY");
+                answerTextView.setVisibility(View.INVISIBLE);
+                nextQuestionId = getRandomQuestionId();
+                aButton.setVisibility(View.INVISIBLE);
+                bButton.setVisibility(View.INVISIBLE);
                 cButton.setVisibility(View.INVISIBLE);
                 dButton.setVisibility(View.INVISIBLE);
                 eButton.setVisibility(View.INVISIBLE);
                 fButton.setVisibility(View.INVISIBLE);
-            } else if (Integer.valueOf(question.getChoices()) == 3) {
-                dButton.setVisibility(View.INVISIBLE);
-                eButton.setVisibility(View.INVISIBLE);
-                fButton.setVisibility(View.INVISIBLE);
-            } else if (Integer.valueOf(question.getChoices()) == 4) {
-                eButton.setVisibility(View.INVISIBLE);
-                fButton.setVisibility(View.INVISIBLE);
-            } else if (Integer.valueOf(question.getChoices()) == 5) {
-                fButton.setVisibility(View.INVISIBLE);
+            }
+            if(!error) {
+                questionTextView.setText(question.getQuestion());
+                answerTextView.setText(question.getAnswer());
+                nextQuestionId = (int) question.getId();
+
+                cButton.setVisibility(View.VISIBLE);
+                dButton.setVisibility(View.VISIBLE);
+                eButton.setVisibility(View.VISIBLE);
+                fButton.setVisibility(View.VISIBLE);
+                if (Integer.valueOf(question.getChoices()) == 2) {
+                    cButton.setVisibility(View.INVISIBLE);
+                    dButton.setVisibility(View.INVISIBLE);
+                    eButton.setVisibility(View.INVISIBLE);
+                    fButton.setVisibility(View.INVISIBLE);
+                } else if (Integer.valueOf(question.getChoices()) == 3) {
+                    dButton.setVisibility(View.INVISIBLE);
+                    eButton.setVisibility(View.INVISIBLE);
+                    fButton.setVisibility(View.INVISIBLE);
+                } else if (Integer.valueOf(question.getChoices()) == 4) {
+                    eButton.setVisibility(View.INVISIBLE);
+                    fButton.setVisibility(View.INVISIBLE);
+                } else if (Integer.valueOf(question.getChoices()) == 5) {
+                    fButton.setVisibility(View.INVISIBLE);
+                }
             }
         }
     }
