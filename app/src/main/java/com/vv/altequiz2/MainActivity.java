@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
             bar(100);
             boolean error=false;
             try {
-                question = new Gson().fromJson("<vv]", Question.class);
+                question = new Gson().fromJson(result, Question.class);
             }catch(Exception e){
                 error=true;
                 questionTextView.setText("CLOUD HS. REDEPLOY");
