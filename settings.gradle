@@ -1,0 +1,2 @@
+rootProject.name = "Altequiz2"
+include ':app'
