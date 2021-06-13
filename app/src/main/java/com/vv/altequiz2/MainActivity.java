@@ -13,6 +13,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.Random;
 
@@ -28,22 +31,19 @@ public class MainActivity extends AppCompatActivity {
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
-    TextView answerTextView;
     private static ProgressBar progressBar;
+
     Question question;
+    int nextQuestionId = getRandomQuestionId();
+
     TextView questionTextView;
+    TextView answerTextView;
     Button aButton;
     Button bButton;
     Button cButton;
     Button dButton;
     Button eButton;
     Button fButton;
-
-    int nextQuestionId = getRandomQuestionId();
-
-    private int getRandomQuestionId() {
-        return new Random().nextInt(170) + 2;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,55 +54,19 @@ public class MainActivity extends AppCompatActivity {
         progressBar = (ProgressBar) findViewById(R.id.bar);
         questionTextView = (TextView) findViewById(R.id.textview);
 
-        aButton = (Button) findViewById(R.id.abtn);
-        aButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("A").execute();
-            }
-        });
+        declareAbtn();
 
-        bButton = (Button) findViewById(R.id.bbtn);
-        bButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("B").execute();
-            }
-        });
+        declareBbtn();
 
-        cButton = (Button) findViewById(R.id.cbtn);
-        cButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("C").execute();
-            }
-        });
+        declareCbtn();
 
-        dButton = (Button) findViewById(R.id.dbtn);
-        dButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("D").execute();
-            }
-        });
+        declareDbtn();
 
-        eButton = (Button) findViewById(R.id.ebtn);
-        eButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("E").execute();
-            }
-        });
+        declareEbtn();
 
-        fButton = (Button) findViewById(R.id.fbtn);
-        fButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new Task("F").execute();
-            }
-        });
+        declareFbtn();
 
-        new Task("A").execute();
+        launchTaskWithAnswer("A");//TODO smell code
     }
 
     @Override
@@ -110,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         System.exit(0);
     }
-
 
     private class Task extends AsyncTask<Void, Void, String> {
 
@@ -121,123 +84,290 @@ public class MainActivity extends AppCompatActivity {
         public Task(String answer) {
             super();
             answerFromFront = answer;
-            aButton.setEnabled(false);
-            bButton.setEnabled(false);
-            cButton.setEnabled(false);
-            dButton.setEnabled(false);
-            eButton.setEnabled(false);
-            fButton.setEnabled(false);
+            disableButtons();
         }
 
         @Override
         protected String doInBackground(Void... params) {
 
-            bar(20);
+            updateProgressBar(20);
+
             OkHttpClient client = new OkHttpClient();
-            String json=getJson();
-            while(json==null)json=getJson();
-            RequestBody body = RequestBody.create(JSON,json);
-            Request request = new Request.Builder()
-                    .url(URL_POST)
-                    .post(body)
-                    .build();
-            bar(80);
-            String questionJson = null;
-            try (Response response = client.newCall(request).execute()) {
-                bar(100);
-                questionJson = response.body().string();
-            } catch (IOException e) {
-                Log.e("vv", "task get question json post " + e.getMessage());
-            }
 
-            return questionJson;
+            Request request = getQuestionPOSTRequest();
+
+            updateProgressBar(80);
+
+            String nextQuestionJSON = getNextQuestionFromPOSTRequest(client, request);
+
+            return nextQuestionJSON;
         }
 
-        private void bar(int step) {
-            progressBar.setProgress(step);
-        }
-
-        private String getJson() {
-            OkHttpClient client = new OkHttpClient();
-            Request request = new Request.Builder()
-                    .url(URL_GET + nextQuestionId)
-                    .build();
-            bar(40);
-            String questionJson = null;
-            try (Response response = client.newCall(request).execute()) {
-                bar(60);
-                questionJson = response.body().string();
-                try {
-                    Question question = new Gson().fromJson(questionJson, Question.class);
-                    question.setAnswer(answerFromFront);
-                    questionJson = new Gson().toJson(question, Question.class);
-                } catch (Exception e) {
-                    Log.e("vv", "getJson " + e.getMessage());
-                }
-            } catch (Exception e) {
-                Log.e("vv", "getJson " + e.getMessage());
-            }
-
-            return questionJson;
-        }
 
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
-            bar(100);
-            boolean error = false;
-            try {
-                question = new Gson().fromJson(result, Question.class);
-            } catch (Exception e) {
-                error = true;
-                questionTextView.setText("CLOUD HS. REDEPLOY");
-                answerTextView.setVisibility(View.INVISIBLE);
-                nextQuestionId = getRandomQuestionId();
-                aButton.setVisibility(View.INVISIBLE);
-                bButton.setVisibility(View.INVISIBLE);
-                cButton.setVisibility(View.INVISIBLE);
-                dButton.setVisibility(View.INVISIBLE);
-                eButton.setVisibility(View.INVISIBLE);
-                fButton.setVisibility(View.INVISIBLE);
-            }
-            if (!error && question!=null &&  questionTextView!=null) {
-                try {
-                    questionTextView.setText(question.getQuestion());
-                }catch(Exception e){
-                    System.out.println("VVVVV"+e.getMessage());
-                }
+            updateProgressBar(100);
+
+            boolean error = isQuestionUpdateFailed(result);//TODO smell code
+
+            if (!error && isQuestionTextViewValid()) {
+                updateQuestionTextView();
                 answerTextView.setText(question.getAnswer());
                 nextQuestionId = (int) question.getId();
 
-                cButton.setVisibility(View.VISIBLE);
-                dButton.setVisibility(View.VISIBLE);
-                eButton.setVisibility(View.VISIBLE);
-                fButton.setVisibility(View.VISIBLE);
+                displayCDEFButtons();
                 if (Integer.valueOf(question.getChoices()) == 2) {
-                    cButton.setVisibility(View.INVISIBLE);
-                    dButton.setVisibility(View.INVISIBLE);
-                    eButton.setVisibility(View.INVISIBLE);
-                    fButton.setVisibility(View.INVISIBLE);
+                    hideCDEFButtons();
                 } else if (Integer.valueOf(question.getChoices()) == 3) {
-                    dButton.setVisibility(View.INVISIBLE);
-                    eButton.setVisibility(View.INVISIBLE);
-                    fButton.setVisibility(View.INVISIBLE);
+                    hideDEFButtons();
                 } else if (Integer.valueOf(question.getChoices()) == 4) {
-                    eButton.setVisibility(View.INVISIBLE);
-                    fButton.setVisibility(View.INVISIBLE);
+                    hideEFButtons();
                 } else if (Integer.valueOf(question.getChoices()) == 5) {
                     fButton.setVisibility(View.INVISIBLE);
                 }
             }
-            aButton.setEnabled(true);
-            bButton.setEnabled(true);
-            cButton.setEnabled(true);
-            dButton.setEnabled(true);
-            eButton.setEnabled(true);
-            fButton.setEnabled(true);
+
+            enableButtons();
         }
+
+
+        //        _____         _           ______     _            _
+        //       |_   _|       | |          | ___ \   (_)          | |
+        //         | | __ _ ___| | __       | |_/ / __ ___   ____ _| |_ ___  ___
+        //         | |/ _` / __| |/ /       |  __/ '__| \ \ / / _` | __/ _ \/ __|
+        //         | | (_| \__ \   <        | |  | |  | |\ V / (_| | ||  __/\__ \
+        //         \_/\__,_|___/_|\_\       \_|  |_|  |_| \_/ \__,_|\__\___||___/
+        //
+        //
+
+        @Nullable
+        private String getNextQuestionFromPOSTRequest(OkHttpClient client, Request request) {
+            String nextQuestionJSON = null;
+            try (Response response = client.newCall(request).execute()) {
+                updateProgressBar(100);
+                nextQuestionJSON = response.body().string();
+            } catch (IOException e) {
+                log(e, "error while getting question JSON post request");
+            }
+            return nextQuestionJSON;
+        }
+
+        @NotNull
+        private Request getQuestionPOSTRequest() {
+            String questionJSON = getQuestionJSON();
+            RequestBody body = RequestBody.create(JSON, questionJSON);
+            Request request = new Request.Builder()
+                    .url(URL_POST)
+                    .post(body)
+                    .build();
+            return request;
+        }
+
+        @NotNull
+        private String getQuestionJSON() {
+            String questionJSON = subGetQuestionJSON();
+            while (questionJSON == null) questionJSON = subGetQuestionJSON();
+            return questionJSON;
+        }
+
+        private String subGetQuestionJSON() {
+            OkHttpClient client = new OkHttpClient();
+            Request request = new Request.Builder()
+                    .url(URL_GET + nextQuestionId)
+                    .build();
+            updateProgressBar(40);
+            String questionJson = null;
+            try (Response response = client.newCall(request).execute()) {
+                updateProgressBar(60);
+                questionJson = response.body().string();
+                questionJson = updateQuestionJSONWithAnswerFromFront(questionJson);
+            } catch (Exception e) {
+                log(e, "error in the sub process of getting JSON question");
+            }
+
+            return questionJson;
+        }
+
+        private String updateQuestionJSONWithAnswerFromFront(String questionJson) {
+            try {
+                Question question = new Gson().fromJson(questionJson, Question.class);
+                question.setAnswer(answerFromFront);
+                questionJson = new Gson().toJson(question, Question.class);
+            } catch (Exception e) {
+                log(e, "error while modifying question JSON with answer from the front");
+            }
+            return questionJson;
+        }
+
+        private boolean isQuestionTextViewValid() {
+            return question != null && questionTextView != null;
+        }
+
+        private void updateQuestionTextView() {
+            try {
+                questionTextView.setText(question.getQuestion());
+            } catch (Exception e) {
+                log(e, "error while setting the question text view");
+            }
+        }
+
     }
+
+
+    //    ___       _   _       _ _                ______     _            _
+    //   / _ \     | | (_)     (_) |               | ___ \   (_)          | |
+    //  / /_\ \ ___| |_ ___   ___| |_ _   _        | |_/ / __ ___   ____ _| |_ ___  ___
+    //  |  _  |/ __| __| \ \ / / | __| | | |       |  __/ '__| \ \ / / _` | __/ _ \/ __|
+    //  | | | | (__| |_| |\ V /| | |_| |_| |       | |  | |  | |\ V / (_| | ||  __/\__ \
+    //  \_| |_/\___|\__|_| \_/ |_|\__|\__, |       \_|  |_|  |_| \_/ \__,_|\__\___||___/
+    //                                 __/ |
+    //                                |___/
+
+    private void launchTaskWithAnswer(String answer) {
+        new Task(answer).execute();
+    }
+
+    private boolean isQuestionUpdateFailed(String result) {
+        boolean error = false;
+        try {
+            question = new Gson().fromJson(result, Question.class);
+        } catch (Exception e) {
+            error = true;
+            nextQuestionId = getRandomQuestionId();
+            questionTextView.setText("CLOUD HS. REDEPLOY");
+            answerTextView.setVisibility(View.INVISIBLE);
+            hideButtons();
+        }
+        return error;
+    }
+
+    private int getRandomQuestionId() {
+        return new Random().nextInt(170) + 2;
+    }
+
+    private void updateProgressBar(int step) {
+        progressBar.setProgress(step);
+    }
+
+    private void declareFbtn() {
+        fButton = (Button) findViewById(R.id.fbtn);
+        fButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("F");
+            }
+        });
+    }
+
+    private void declareEbtn() {
+        eButton = (Button) findViewById(R.id.ebtn);
+        eButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("E");
+            }
+        });
+    }
+
+    private void declareDbtn() {
+        dButton = (Button) findViewById(R.id.dbtn);
+        dButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("D");
+            }
+        });
+    }
+
+    private void declareCbtn() {
+        cButton = (Button) findViewById(R.id.cbtn);
+        cButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("C");
+            }
+        });
+    }
+
+    private void declareBbtn() {
+        bButton = (Button) findViewById(R.id.bbtn);
+        bButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("B");
+            }
+        });
+    }
+
+    private void declareAbtn() {
+        aButton = (Button) findViewById(R.id.abtn);
+        aButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                launchTaskWithAnswer("A");
+            }
+        });
+    }
+
+    private void hideEFButtons() {
+        eButton.setVisibility(View.INVISIBLE);
+        fButton.setVisibility(View.INVISIBLE);
+    }
+
+    private void hideDEFButtons() {
+        dButton.setVisibility(View.INVISIBLE);
+        hideEFButtons();
+    }
+
+    private void hideCDEFButtons() {
+        cButton.setVisibility(View.INVISIBLE);
+        hideDEFButtons();
+    }
+
+    private void hideButtons() {
+        aButton.setVisibility(View.INVISIBLE);
+        bButton.setVisibility(View.INVISIBLE);
+        hideCDEFButtons();
+    }
+
+    private void displayCDEFButtons() {
+        cButton.setVisibility(View.VISIBLE);
+        dButton.setVisibility(View.VISIBLE);
+        eButton.setVisibility(View.VISIBLE);
+        fButton.setVisibility(View.VISIBLE);
+    }
+
+    private void enableButtons() {
+        aButton.setEnabled(true);
+        bButton.setEnabled(true);
+        cButton.setEnabled(true);
+        dButton.setEnabled(true);
+        eButton.setEnabled(true);
+        fButton.setEnabled(true);
+    }
+
+    private void disableButtons() {
+        aButton.setEnabled(false);
+        bButton.setEnabled(false);
+        cButton.setEnabled(false);
+        dButton.setEnabled(false);
+        eButton.setEnabled(false);
+        fButton.setEnabled(false);
+    }
+
+    private void log(Exception e, String str) {
+        Log.e("altequiz", str + e.getMessage());
+    }
+
+    //    _____                              _____ _
+    //   |_   _|                            /  __ \ |
+    //     | | _ __  _ __   ___ _ __        | /  \/ | __ _ ___ ___
+    //     | || '_ \| '_ \ / _ \ '__|       | |   | |/ _` / __/ __|
+    //    _| || | | | | | |  __/ |          | \__/\ | (_| \__ \__ \
+    //    \___/_| |_|_| |_|\___|_|           \____/_|\__,_|___/___/
+    //
 
     private class Question {
 
