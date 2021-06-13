@@ -114,13 +114,19 @@ public class MainActivity extends AppCompatActivity {
 
     private class Task extends AsyncTask<Void, Void, String> {
 
-        public static final String URL_POST = "https://altequiz.osc-fr1.scalingo.io/send/";
-        public static final String URL_GET = "https://altequiz.osc-fr1.scalingo.io/question/";
+        public static final String URL_POST = "http://129.213.40.35:5000/send/";
+        public static final String URL_GET = "http://129.213.40.35:5000/question/";
         String answerFromFront = null;
 
         public Task(String answer) {
             super();
             answerFromFront = answer;
+            aButton.setEnabled(false);
+            bButton.setEnabled(false);
+            cButton.setEnabled(false);
+            dButton.setEnabled(false);
+            eButton.setEnabled(false);
+            fButton.setEnabled(false);
         }
 
         @Override
@@ -128,7 +134,9 @@ public class MainActivity extends AppCompatActivity {
 
             bar(20);
             OkHttpClient client = new OkHttpClient();
-            RequestBody body = RequestBody.create(JSON, getJson());
+            String json=getJson();
+            while(json==null)json=getJson();
+            RequestBody body = RequestBody.create(JSON,json);
             Request request = new Request.Builder()
                     .url(URL_POST)
                     .post(body)
@@ -193,8 +201,12 @@ public class MainActivity extends AppCompatActivity {
                 eButton.setVisibility(View.INVISIBLE);
                 fButton.setVisibility(View.INVISIBLE);
             }
-            if (!error) {
-                questionTextView.setText(question.getQuestion());
+            if (!error && question!=null &&  questionTextView!=null) {
+                try {
+                    questionTextView.setText(question.getQuestion());
+                }catch(Exception e){
+                    System.out.println("VVVVV"+e.getMessage());
+                }
                 answerTextView.setText(question.getAnswer());
                 nextQuestionId = (int) question.getId();
 
@@ -218,6 +230,12 @@ public class MainActivity extends AppCompatActivity {
                     fButton.setVisibility(View.INVISIBLE);
                 }
             }
+            aButton.setEnabled(true);
+            bButton.setEnabled(true);
+            cButton.setEnabled(true);
+            dButton.setEnabled(true);
+            eButton.setEnabled(true);
+            fButton.setEnabled(true);
         }
     }
 
