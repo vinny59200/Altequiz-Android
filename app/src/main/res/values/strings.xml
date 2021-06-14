@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Altequiz2</string>
-    <string name="questiontv">Hello world!</string>
+    <string name="app_name">Altequiz</string>
+    <string name="questiontv">Chargement de la question en cours.</string>
 </resources>

@@ -1,10 +1,9 @@
 package com.vv.altequiz2;
 
 import android.os.AsyncTask;
-import android.os.Build;
+
 import android.os.Bundle;
 
-import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -84,6 +83,15 @@ public class MainActivity extends AppCompatActivity {
         System.exit(0);
     }
 
+
+    //    ___  ___      _               _____         _
+    //    |  \/  |     (_)             |_   _|       | |
+    //    | .  . | __ _ _ _ __           | | __ _ ___| | __
+    //    | |\/| |/ _` | | '_ \          | |/ _` / __| |/ /
+    //    | |  | | (_| | | | | |         | | (_| \__ \   <
+    //    \_|  |_/\__,_|_|_| |_|         \_/\__,_|___/_|\_\
+    //
+
     private class Task extends AsyncTask<Void, Void, String> {
 
         public static final String URL_POST = "http://129.213.40.35:5000/send/";
@@ -120,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
             updateProgressBar(100);
 
             if (questionsTrack.size() == 5) {
-                int max = 0;
+                int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
                     if (quest.getKarma() > max) {
@@ -130,9 +138,9 @@ public class MainActivity extends AppCompatActivity {
                 }
                 hideButtons();
                 replayButton.setVisibility(View.VISIBLE);
+                answerTextView.setVisibility(View.INVISIBLE);
                 questionTextView.setText("Votre decile de classement est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
-                answerTextView.setVisibility(View.INVISIBLE);
             } else {
                 boolean error = isQuestionUpdateFailed(result);//TODO smell code
 
@@ -153,7 +161,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-
             enableButtons();
         }
 
@@ -169,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Nullable
         private String getNextQuestionFromPOSTRequest(OkHttpClient client, Request request) {
-            String nextQuestionJSON = null;
+            String nextQuestionJSON = "";
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
@@ -193,12 +200,13 @@ public class MainActivity extends AppCompatActivity {
         @NotNull
         private String getQuestionJSON() {
             String questionJSON = subGetQuestionJSON();
-            while (questionJSON == null) questionJSON = subGetQuestionJSON();
+            while (questionJSON == null) questionJSON = subGetQuestionJSON();//TODO smell code
             return questionJSON;
         }
 
         private String subGetQuestionJSON() {
             OkHttpClient client = new OkHttpClient();
+            System.out.println("VV234"+URL_GET + nextQuestionId);
             Request request = new Request.Builder()
                     .url(URL_GET + nextQuestionId)
                     .build();
@@ -209,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
                 questionJson = response.body().string();
                 questionJson = updateQuestionJSONWithAnswerFromFront(questionJson);
             } catch (Exception e) {
+                e.printStackTrace();
                 log(e, "error in the sub process of getting JSON question");
             }
 
@@ -238,8 +247,15 @@ public class MainActivity extends AppCompatActivity {
                 log(e, "error while setting the question text view");
             }
         }
-
     }
+
+    //   ______          _ _              _____         _
+    //   |  _  \        (_) |            |_   _|       | |
+    //   | | | |___  ___ _| | ___          | | __ _ ___| | __
+    //   | | | / _ \/ __| | |/ _ \         | |/ _` / __| |/ /
+    //   | |/ /  __/ (__| | |  __/         | | (_| \__ \   <
+    //   |___/ \___|\___|_|_|\___|         \_/\__,_|___/_|\_\
+    //
 
     private class DecileTask extends AsyncTask<Void, Void, String> {
 
@@ -253,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
-            System.out.println("doinbg decile task");
+            System.out.println("doing decile task");
             return getDecile(finalQuestionId);
         }
 
@@ -266,11 +282,11 @@ public class MainActivity extends AppCompatActivity {
             OkHttpClient client = new OkHttpClient();
 
             Request request = new Request.Builder()
-                    .url(DECILE_URL_GET+id)
+                    .url(DECILE_URL_GET + id)
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
-                String result=response.body().string();
+                String result = response.body().string();
                 return result.substring(0, result.length() - 2);
             } catch (IOException e) {
                 log(e, "decileKO");
@@ -455,13 +471,14 @@ public class MainActivity extends AppCompatActivity {
         private String question;
         private String answer;
         private int karma;
-        private String choices;
+        private int choices;
 
-        public Question(int id, String question, String answer, int karma) {
+        public Question(int id, String question, String answer, int karma, int choices) {
             this.id = id;
             this.question = question;
             this.answer = answer;
             this.karma = karma;
+            this.choices = choices;
         }
 
         public String getQuestion() {
@@ -496,11 +513,11 @@ public class MainActivity extends AppCompatActivity {
             this.karma = karma;
         }
 
-        public String getChoices() {
+        public int getChoices() {
             return choices;
         }
 
-        public void setChoices(String choices) {
+        public void setChoices(int choices) {
             this.choices = choices;
         }
     }
