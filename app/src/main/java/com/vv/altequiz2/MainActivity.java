@@ -1,8 +1,10 @@
 package com.vv.altequiz2;
 
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 
@@ -33,11 +37,14 @@ public class MainActivity extends AppCompatActivity {
             = MediaType.get("application/json; charset=utf-8");
     private static ProgressBar progressBar;
 
+
     Question question;
+    List<Question> questionsTrack = new ArrayList<>();
     int nextQuestionId = getRandomQuestionId();
 
     TextView questionTextView;
     TextView answerTextView;
+    Button replayButton;
     Button aButton;
     Button bButton;
     Button cButton;
@@ -53,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
         answerTextView = (TextView) findViewById(R.id.answertv);
         progressBar = (ProgressBar) findViewById(R.id.bar);
         questionTextView = (TextView) findViewById(R.id.textview);
+
+        declareReplaybtn();
 
         declareAbtn();
 
@@ -110,22 +119,38 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(100);
 
-            boolean error = isQuestionUpdateFailed(result);//TODO smell code
+            if (questionsTrack.size() == 5) {
+                int max = 0;
+                int questionIdForDecile = 0;
+                for (Question quest : questionsTrack) {
+                    if (quest.getKarma() > max) {
+                        max = quest.getKarma();
+                        questionIdForDecile = (int) quest.getId();
+                    }
+                }
+                hideButtons();
+                replayButton.setVisibility(View.VISIBLE);
+                questionTextView.setText("Votre decile de classement est en cours de calcul");
+                new DecileTask("" + questionIdForDecile).execute();
+                answerTextView.setVisibility(View.INVISIBLE);
+            } else {
+                boolean error = isQuestionUpdateFailed(result);//TODO smell code
 
-            if (!error && isQuestionTextViewValid()) {
-                updateQuestionTextView();
-                answerTextView.setText(question.getAnswer());
-                nextQuestionId = (int) question.getId();
+                if (!error && isQuestionTextViewValid()) {
+                    updateQuestionTextView();
+                    answerTextView.setText(question.getAnswer());
+                    nextQuestionId = (int) question.getId();
 
-                displayCDEFButtons();
-                if (Integer.valueOf(question.getChoices()) == 2) {
-                    hideCDEFButtons();
-                } else if (Integer.valueOf(question.getChoices()) == 3) {
-                    hideDEFButtons();
-                } else if (Integer.valueOf(question.getChoices()) == 4) {
-                    hideEFButtons();
-                } else if (Integer.valueOf(question.getChoices()) == 5) {
-                    fButton.setVisibility(View.INVISIBLE);
+                    displayCDEFButtons();
+                    if (Integer.valueOf(question.getChoices()) == 2) {
+                        hideCDEFButtons();
+                    } else if (Integer.valueOf(question.getChoices()) == 3) {
+                        hideDEFButtons();
+                    } else if (Integer.valueOf(question.getChoices()) == 4) {
+                        hideEFButtons();
+                    } else if (Integer.valueOf(question.getChoices()) == 5) {
+                        fButton.setVisibility(View.INVISIBLE);
+                    }
                 }
             }
 
@@ -194,6 +219,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Question question = new Gson().fromJson(questionJson, Question.class);
                 question.setAnswer(answerFromFront);
+                questionsTrack.add(question);
                 questionJson = new Gson().toJson(question, Question.class);
             } catch (Exception e) {
                 log(e, "error while modifying question JSON with answer from the front");
@@ -215,7 +241,43 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private class DecileTask extends AsyncTask<Void, Void, String> {
 
+        public static final String DECILE_URL_GET = "http://129.213.40.35:5000/decile/";
+        private String finalQuestionId = "2";
+
+        public DecileTask(String idQuestionFinale) {
+            super();
+            finalQuestionId = idQuestionFinale;
+        }
+
+        @Override
+        protected String doInBackground(Void... params) {
+            System.out.println("doinbg decile task");
+            return getDecile(finalQuestionId);
+        }
+
+        protected void onPostExecute(String decile) {
+            System.out.println("post ex dec task");
+            questionTextView.setText("Votre decile de classement est le numero " + decile);
+        }
+
+        private String getDecile(String id) {
+            OkHttpClient client = new OkHttpClient();
+
+            Request request = new Request.Builder()
+                    .url(DECILE_URL_GET+id)
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                String result=response.body().string();
+                return result.substring(0, result.length() - 2);
+            } catch (IOException e) {
+                log(e, "decileKO");
+            }
+            return "KO";
+        }
+    }
     //    ___       _   _       _ _                ______     _            _
     //   / _ \     | | (_)     (_) |               | ___ \   (_)          | |
     //  / /_\ \ ___| |_ ___   ___| |_ _   _        | |_/ / __ ___   ____ _| |_ ___  ___
@@ -249,6 +311,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateProgressBar(int step) {
         progressBar.setProgress(step);
+    }
+
+    private void declareReplaybtn() {
+        replayButton = (Button) findViewById(R.id.replaybtn);
+        replayButton.setVisibility(View.INVISIBLE);
+        replayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+                startActivity(getIntent());
+            }
+        });
     }
 
     private void declareFbtn() {
@@ -330,6 +404,12 @@ public class MainActivity extends AppCompatActivity {
         aButton.setVisibility(View.INVISIBLE);
         bButton.setVisibility(View.INVISIBLE);
         hideCDEFButtons();
+    }
+
+    private void displayButtons() {
+        aButton.setVisibility(View.VISIBLE);
+        bButton.setVisibility(View.VISIBLE);
+        displayCDEFButtons();
     }
 
     private void displayCDEFButtons() {
