@@ -43,6 +43,12 @@ public class MainActivity extends AppCompatActivity {
 
     TextView questionTextView;
     TextView answerTextView;
+    TextView answerATextView;
+    TextView answerBTextView;
+    TextView answerCTextView;
+    TextView answerDTextView;
+    TextView answerETextView;
+    TextView answerFTextView;
     Button replayButton;
     Button aButton;
     Button bButton;
@@ -55,6 +61,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        answerATextView = (TextView) findViewById(R.id.atv);
+        answerBTextView = (TextView) findViewById(R.id.btv);
+        answerCTextView = (TextView) findViewById(R.id.ctv);
+        answerDTextView = (TextView) findViewById(R.id.dtv);
+        answerETextView = (TextView) findViewById(R.id.etv);
+        answerFTextView = (TextView) findViewById(R.id.ftv);
 
         answerTextView = (TextView) findViewById(R.id.answertv);
         progressBar = (ProgressBar) findViewById(R.id.bar);
@@ -139,6 +152,12 @@ public class MainActivity extends AppCompatActivity {
                 hideButtons();
                 replayButton.setVisibility(View.VISIBLE);
                 answerTextView.setVisibility(View.INVISIBLE);
+                answerATextView.setVisibility(View.INVISIBLE);
+                answerBTextView.setVisibility(View.INVISIBLE);
+                answerCTextView.setVisibility(View.INVISIBLE);
+                answerDTextView.setVisibility(View.INVISIBLE);
+                answerETextView.setVisibility(View.INVISIBLE);
+                answerFTextView.setVisibility(View.INVISIBLE);
                 questionTextView.setText("Votre decile de classement est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
             } else {
@@ -243,10 +262,37 @@ public class MainActivity extends AppCompatActivity {
         private void updateQuestionTextView() {
             try {
                 String choices="";
-                for(String choice: question.getChoices_content().split("###")){
-                    choices=new String(choices+"\n"+choice.trim());
+                int cpt=1;
+                for(String choice: question.getChoices_content().split(" ### ")){
+                //for(String choice: question.getChoices_content().split("###")){
+                    //choices=new String(choices+"\n"+choice.trim());
+                    switch (cpt){
+                        case 1:
+                            answerATextView.setText(choice.trim().substring(2));
+                            break;
+                        case 2:
+                            answerBTextView.setText(choice.trim().substring(2));
+                            break;
+                        case 3:
+                            answerCTextView.setText(choice.trim().substring(2));
+                            break;
+                        case 4:
+                            answerDTextView.setText(choice.trim().substring(2));
+                            break;
+                        case 5:
+                            answerETextView.setText(choice.trim().substring(2));
+                            break;
+                        case 6:
+                            answerFTextView.setText(choice.trim().substring(2));
+                            break;
+                        default:
+                            answerATextView.setText(choice.trim().substring(2));
+                    }
+                    cpt++;
                 }
+
                 questionTextView.setText(question.getQuestion()+choices);
+                //questionTextView.setText(question.getQuestion()+choices);
             } catch (Exception e) {
                 log(e, "error while setting the question text view");
             }
