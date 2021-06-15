@@ -150,13 +150,13 @@ public class MainActivity extends AppCompatActivity {
                     nextQuestionId = (int) question.getId();
 
                     displayCDEFButtons();
-                    if (Integer.valueOf(question.getChoices()) == 2) {
+                    if (Integer.valueOf(question.getChoices_count()) == 2) {
                         hideCDEFButtons();
-                    } else if (Integer.valueOf(question.getChoices()) == 3) {
+                    } else if (Integer.valueOf(question.getChoices_count()) == 3) {
                         hideDEFButtons();
-                    } else if (Integer.valueOf(question.getChoices()) == 4) {
+                    } else if (Integer.valueOf(question.getChoices_count()) == 4) {
                         hideEFButtons();
-                    } else if (Integer.valueOf(question.getChoices()) == 5) {
+                    } else if (Integer.valueOf(question.getChoices_count()) == 5) {
                         fButton.setVisibility(View.INVISIBLE);
                     }
                 }
@@ -242,7 +242,11 @@ public class MainActivity extends AppCompatActivity {
 
         private void updateQuestionTextView() {
             try {
-                questionTextView.setText(question.getQuestion());
+                String choices="";
+                for(String choice: question.getChoices_content().split("###")){
+                    choices=new String(choices+"\n"+choice.trim());
+                }
+                questionTextView.setText(question.getQuestion()+choices);
             } catch (Exception e) {
                 log(e, "error while setting the question text view");
             }
@@ -469,16 +473,18 @@ public class MainActivity extends AppCompatActivity {
 
         private int id;
         private String question;
+        private String choices_content;
         private String answer;
         private int karma;
-        private int choices;
+        private int choices_count;
 
-        public Question(int id, String question, String answer, int karma, int choices) {
+        public Question(int id, String question, String answer, int karma, int choices_count, String choices_content) {
             this.id = id;
             this.question = question;
             this.answer = answer;
             this.karma = karma;
-            this.choices = choices;
+            this.choices_content = choices_content;
+            this.choices_count = choices_count;
         }
 
         public String getQuestion() {
@@ -513,12 +519,20 @@ public class MainActivity extends AppCompatActivity {
             this.karma = karma;
         }
 
-        public int getChoices() {
-            return choices;
+        public String getChoices_content() {
+            return choices_content;
         }
 
-        public void setChoices(int choices) {
-            this.choices = choices;
+        public void setChoices_content(String choices_content) {
+            this.choices_content = choices_content;
+        }
+
+        public int getChoices_count() {
+            return choices_count;
+        }
+
+        public void setChoices_count(int choices_count) {
+            this.choices_count = choices_count;
         }
     }
 }
