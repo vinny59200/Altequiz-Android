@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                 hideButtons();
                 replayButton.setVisibility(View.VISIBLE);
                 answerTextView.setVisibility(View.INVISIBLE);
-                questionTextView.setText("Votre decile de classement est en cours de calcul");
+                questionTextView.setText("Votre classement est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
             } else {
                 boolean error = isQuestionUpdateFailed(result);//TODO smell code
@@ -279,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String decile) {
             System.out.println("post ex dec task");
-            questionTextView.setText("Votre decile de classement est le numero " + decile);
+            questionTextView.setText("Vous etes apres " + Integer.parseInt(decile)*10 + "% des joueurs");
         }
 
         private String getDecile(String id) {
