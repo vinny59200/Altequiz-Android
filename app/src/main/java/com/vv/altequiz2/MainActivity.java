@@ -19,8 +19,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 import okhttp3.Interceptor;
@@ -384,7 +387,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int getRandomQuestionId() {
-        return new Random().nextInt(170) + 2;
+        if (questionsTrack.isEmpty()) return new Random().nextInt(170) + 2;
+        List<String> _170 = IntStream.range(2, 172)
+                .mapToObj(i -> ((Integer) i).toString()) //i is an int, not an Integer
+                .collect(Collectors.toList());
+        List<String> ids = new ArrayList<>();
+        for (Question quest : questionsTrack) {
+            ids.add("" + ((int) quest.getId()));
+        }
+        _170.removeAll(ids);
+        Random randomizer = new Random();
+        return Integer.parseInt(_170.get(randomizer.nextInt(_170.size())));
     }
 
     private void updateProgressBar(int step) {
