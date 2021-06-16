@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 
 
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -122,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(20);
 
-            OkHttpClient client = new OkHttpClient();
+            OkHttpClient client = initRequest();
 
             Request request = getQuestionPOSTRequest();
 
@@ -134,13 +135,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+
+
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
             updateProgressBar(100);
 
-            if (questionsTrack.size() == 5) {
+            if (questionsTrack.size() == 50) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
@@ -169,6 +172,8 @@ public class MainActivity extends AppCompatActivity {
                     nextQuestionId = (int) question.getId();
 
                     displayCDEFButtons();
+                    System.out.println("VV 676 question count:"+question.getChoices_count());
+                    System.out.println("VV 676 last question count:"+questionsTrack.get(questionsTrack.size()-1).getChoices_count());
                     if (Integer.valueOf(question.getChoices_count()) == 2) {
                         hideCDEFButtons();
                     } else if (Integer.valueOf(question.getChoices_count()) == 3) {
@@ -199,8 +204,14 @@ public class MainActivity extends AppCompatActivity {
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
-            } catch (IOException e) {
+            } catch (Exception e) {
+                e.printStackTrace();
                 log(e, "error while getting question JSON post request");
+                nextQuestionJSON="{\"id\": 11, \"question\": \"EN QUOI L\\u2019ACC\\u00c8S \\u00c0 L\\u2019INFORMATION PEUT-IL AIDER \\u00c0 SORTIR DE LA\n" +
+                        "PR\\u00c9CARIT\\u00c9?\", \"choices_count\": 4, \"choices_content\": \" A Il favorise la croissance \\u00e9conomique et le\n" +
+                        "d\\u00e9veloppement ### B Il permet de se procurer des contenus accessibles et utiles facilement ### C Il facilite les\n" +
+                        "\\u00e9changes et la communication ### D Toutes ces r\\u00e9ponses\", \"answer\": \"D\", \"karma\": -3}";
+
             }
             return nextQuestionJSON;
         }
@@ -224,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private String subGetQuestionJSON() {
-            OkHttpClient client = new OkHttpClient();
+            OkHttpClient client = initRequest();
             System.out.println("VV234"+URL_GET + nextQuestionId);
             Request request = new Request.Builder()
                     .url(URL_GET + nextQuestionId)
@@ -329,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private String getDecile(String id) {
-            OkHttpClient client = new OkHttpClient();
+            OkHttpClient client =  initRequest();
 
             Request request = new Request.Builder()
                     .url(DECILE_URL_GET + id)
@@ -361,6 +372,7 @@ public class MainActivity extends AppCompatActivity {
         boolean error = false;
         try {
             question = new Gson().fromJson(result, Question.class);
+            System.out.println("VV quest"+question.toString());
         } catch (Exception e) {
             error = true;
             nextQuestionId = getRandomQuestionId();
@@ -377,6 +389,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateProgressBar(int step) {
         progressBar.setProgress(step);
+    }
+
+    @NotNull
+    private OkHttpClient initRequest() {
+        return new OkHttpClient.Builder()
+                .addNetworkInterceptor(new Interceptor() {
+                    @Override
+                    public Response intercept(Chain chain) throws IOException {
+                        Request request = chain.request().newBuilder().addHeader("Connection", "close").build();
+                        return chain.proceed(request);
+                    }
+                })
+                .build();
     }
 
     private void declareReplaybtn() {
@@ -453,36 +478,49 @@ public class MainActivity extends AppCompatActivity {
 
     private void hideEFButtons() {
         eButton.setVisibility(View.INVISIBLE);
+        answerETextView.setVisibility(View.INVISIBLE);
         fButton.setVisibility(View.INVISIBLE);
+        answerFTextView.setVisibility(View.INVISIBLE);
     }
 
     private void hideDEFButtons() {
         dButton.setVisibility(View.INVISIBLE);
+        answerDTextView.setVisibility(View.INVISIBLE);
         hideEFButtons();
     }
 
     private void hideCDEFButtons() {
         cButton.setVisibility(View.INVISIBLE);
+        answerCTextView.setVisibility(View.INVISIBLE);
+
         hideDEFButtons();
     }
 
     private void hideButtons() {
         aButton.setVisibility(View.INVISIBLE);
+        answerATextView.setVisibility(View.INVISIBLE);
         bButton.setVisibility(View.INVISIBLE);
+        answerBTextView.setVisibility(View.INVISIBLE);
         hideCDEFButtons();
     }
 
     private void displayButtons() {
         aButton.setVisibility(View.VISIBLE);
+        answerATextView.setVisibility(View.VISIBLE);
         bButton.setVisibility(View.VISIBLE);
+        answerBTextView.setVisibility(View.VISIBLE);
         displayCDEFButtons();
     }
 
     private void displayCDEFButtons() {
         cButton.setVisibility(View.VISIBLE);
+        answerCTextView.setVisibility(View.VISIBLE);
         dButton.setVisibility(View.VISIBLE);
+        answerDTextView.setVisibility(View.VISIBLE);
         eButton.setVisibility(View.VISIBLE);
+        answerETextView.setVisibility(View.VISIBLE);
         fButton.setVisibility(View.VISIBLE);
+        answerFTextView.setVisibility(View.VISIBLE);
     }
 
     private void enableButtons() {
@@ -579,6 +617,18 @@ public class MainActivity extends AppCompatActivity {
 
         public void setChoices_count(int choices_count) {
             this.choices_count = choices_count;
+        }
+
+        @Override
+        public String toString() {
+            return "Question{" +
+                    "id=" + id +
+                    ", question='" + question + '\'' +
+                    ", choices_content='" + choices_content + '\'' +
+                    ", answer='" + answer + '\'' +
+                    ", karma=" + karma +
+                    ", choices_count=" + choices_count +
+                    '}';
         }
     }
 }
