@@ -1,5 +1,7 @@
 package com.vv.altequiz2;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 
 import android.os.Bundle;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     TextView answerETextView;
     TextView answerFTextView;
     Button replayButton;
+    Button linkButton;
     Button aButton;
     Button bButton;
     Button cButton;
@@ -78,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
         questionTextView = (TextView) findViewById(R.id.textview);
 
         declareReplaybtn();
+
+        declareLinkbtn();
 
         declareAbtn();
 
@@ -146,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(100);
 
-            if (questionsTrack.size() == 50) {
+            if (questionsTrack.size() == 3) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
@@ -157,6 +162,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 hideButtons();
                 replayButton.setVisibility(View.VISIBLE);
+                linkButton.setVisibility(View.VISIBLE);
                 answerTextView.setVisibility(View.INVISIBLE);
                 answerATextView.setVisibility(View.INVISIBLE);
                 answerBTextView.setVisibility(View.INVISIBLE);
@@ -428,6 +434,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    private void declareLinkbtn() {
+        linkButton = (Button) findViewById(R.id.linkbtn);
+        linkButton.setVisibility(View.INVISIBLE);
+        linkButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
+                startActivity(browserIntent);
+            }
+        });
+    }
+
 
     private void declareFbtn() {
         fButton = (Button) findViewById(R.id.fbtn);
