@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(100);
 
-            if (!isAnswersAllGood && questionsTrack.size() >3) {
+            if (!isAnswersAllGood && questionsTrack.size() >9) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
