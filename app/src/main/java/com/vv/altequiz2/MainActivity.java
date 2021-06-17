@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -155,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne()) {
+            if ((!isAnswersAllGood && questionsTrack.size() > 9) || isAllDOne()) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
@@ -176,6 +177,9 @@ public class MainActivity extends AppCompatActivity {
                 answerFTextView.setVisibility(View.INVISIBLE);
                 questionTextView.setText("Votre classement est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
+                Toast.makeText(getApplicationContext(),
+                        "Discover the answers in the blog!",
+                        Toast.LENGTH_SHORT).show();
             } else {
                 boolean error = isQuestionUpdateFailed(result);//TODO smell code
 
@@ -454,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void declareLinkbtn() {
-        linkButton = (Button) findViewById(R.id.linkbtn);
+        linkButton = (Button) findViewById(R.id.blogbtn);
         linkButton.setVisibility(View.INVISIBLE);
         linkButton.setOnClickListener(new View.OnClickListener() {
             @Override
