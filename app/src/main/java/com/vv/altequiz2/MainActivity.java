@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
                 questionTextView.setText("Votre classement est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
                 Toast.makeText(getApplicationContext(),
-                        "Discover the answers in the blog!",
+                        "Decouvrez les reponses dans le blog!",
                         Toast.LENGTH_SHORT).show();
             } else {
                 boolean error = isQuestionUpdateFailed(result);//TODO smell code
