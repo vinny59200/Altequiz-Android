@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     Question question;
     List<Question> questionsTrack = new ArrayList<>();
+    boolean isAnswersAllGood=true;
     int nextQuestionId = getRandomQuestionId();
 
     TextView questionTextView;
@@ -151,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(100);
 
-            if (questionsTrack.size() == 3) {
+            if (!isAnswersAllGood && questionsTrack.size() >3) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
@@ -266,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
         private String updateQuestionJSONWithAnswerFromFront(String questionJson) {
             try {
                 Question question = new Gson().fromJson(questionJson, Question.class);
+                isAnswersAllGood=isAnswersAllGood(question.getAnswer(),answerFromFront);
                 question.setAnswer(answerFromFront);
                 questionsTrack.add(question);
                 questionJson = new Gson().toJson(question, Question.class);
@@ -319,6 +321,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isAnswersAllGood(String fromDB, String fromFront) {
+        return fromDB.equals(fromFront);
+    }
+
     //   ______          _ _              _____         _
     //   |  _  \        (_) |            |_   _|       | |
     //   | | | |___  ___ _| | ___          | | __ _ ___| | __
@@ -345,7 +351,7 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String decile) {
             System.out.println("post ex dec task");
-            questionTextView.setText("Vous etes apres " + Integer.parseInt(decile)*10 + "% des joueurs");
+            questionTextView.setText("Vous etes apres " + Integer.parseInt(decile)*10 + "% des joueurs (<= calcul pas encore fiable #test #inConstruction)");
         }
 
         private String getDecile(String id) {
