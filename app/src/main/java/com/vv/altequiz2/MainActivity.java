@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -21,7 +22,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     Question question;
     List<Question> questionsTrack = new ArrayList<>();
-    boolean isAnswersAllGood=true;
+    boolean isAnswersAllGood = true;
     int nextQuestionId = getRandomQuestionId();
 
     TextView questionTextView;
@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     Button dButton;
     Button eButton;
     Button fButton;
+    ImageView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         answerDTextView = (TextView) findViewById(R.id.dtv);
         answerETextView = (TextView) findViewById(R.id.etv);
         answerFTextView = (TextView) findViewById(R.id.ftv);
+        imageView = (ImageView) findViewById(R.id.image);
 
         answerTextView = (TextView) findViewById(R.id.answertv);
         progressBar = (ProgressBar) findViewById(R.id.bar);
@@ -144,15 +146,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-
-
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
             updateProgressBar(100);
 
-            if (!isAnswersAllGood && questionsTrack.size() >9) {
+            bButton.setVisibility(View.VISIBLE);
+            aButton.setVisibility(View.VISIBLE);
+
+            if ((!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne()) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
                 for (Question quest : questionsTrack) {
@@ -161,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                         questionIdForDecile = (int) quest.getId();
                     }
                 }
-                hideButtons();
+                hide();
                 replayButton.setVisibility(View.VISIBLE);
                 linkButton.setVisibility(View.VISIBLE);
                 answerTextView.setVisibility(View.INVISIBLE);
@@ -182,8 +185,8 @@ public class MainActivity extends AppCompatActivity {
                     nextQuestionId = (int) question.getId();
 
                     displayCDEFButtons();
-                    System.out.println("VV 676 question count:"+question.getChoices_count());
-                    System.out.println("VV 676 last question count:"+questionsTrack.get(questionsTrack.size()-1).getChoices_count());
+                    System.out.println("VV 676 question count:" + question.getChoices_count());
+                    System.out.println("VV 676 last question count:" + questionsTrack.get(questionsTrack.size() - 1).getChoices_count());
                     if (Integer.valueOf(question.getChoices_count()) == 2) {
                         hideCDEFButtons();
                     } else if (Integer.valueOf(question.getChoices_count()) == 3) {
@@ -217,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 log(e, "error while getting question JSON post request");
-                nextQuestionJSON="{\"id\": 11, \"question\": \"EN QUOI L\\u2019ACC\\u00c8S \\u00c0 L\\u2019INFORMATION PEUT-IL AIDER \\u00c0 SORTIR DE LA\n" +
+                nextQuestionJSON = "{\"id\": 11, \"question\": \"EN QUOI L\\u2019ACC\\u00c8S \\u00c0 L\\u2019INFORMATION PEUT-IL AIDER \\u00c0 SORTIR DE LA\n" +
                         "PR\\u00c9CARIT\\u00c9?\", \"choices_count\": 4, \"choices_content\": \" A Il favorise la croissance \\u00e9conomique et le\n" +
                         "d\\u00e9veloppement ### B Il permet de se procurer des contenus accessibles et utiles facilement ### C Il facilite les\n" +
                         "\\u00e9changes et la communication ### D Toutes ces r\\u00e9ponses\", \"answer\": \"D\", \"karma\": -3}";
@@ -246,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
 
         private String subGetQuestionJSON() {
             OkHttpClient client = initRequest();
-            System.out.println("VV234"+URL_GET + nextQuestionId);
+            System.out.println("VV234" + URL_GET + nextQuestionId);
             Request request = new Request.Builder()
                     .url(URL_GET + nextQuestionId)
                     .build();
@@ -260,14 +263,13 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
                 log(e, "error in the sub process of getting JSON question");
             }
-
             return questionJson;
         }
 
         private String updateQuestionJSONWithAnswerFromFront(String questionJson) {
             try {
                 Question question = new Gson().fromJson(questionJson, Question.class);
-                isAnswersAllGood=isAnswersAllGood(question.getAnswer(),answerFromFront);
+                isAnswersAllGood = isAnswersAllGood(question.getAnswer(), answerFromFront);
                 question.setAnswer(answerFromFront);
                 questionsTrack.add(question);
                 questionJson = new Gson().toJson(question, Question.class);
@@ -283,12 +285,12 @@ public class MainActivity extends AppCompatActivity {
 
         private void updateQuestionTextView() {
             try {
-                String choices="";
-                int cpt=1;
-                for(String choice: question.getChoices_content().split(" ### ")){
-                //for(String choice: question.getChoices_content().split("###")){
+                String choices = "";
+                int cpt = 1;
+                for (String choice : question.getChoices_content().split(" ### ")) {
+                    //for(String choice: question.getChoices_content().split("###")){
                     //choices=new String(choices+"\n"+choice.trim());
-                    switch (cpt){
+                    switch (cpt) {
                         case 1:
                             answerATextView.setText(choice.trim().substring(2));
                             break;
@@ -313,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
                     cpt++;
                 }
 
-                questionTextView.setText(question.getQuestion()+choices);
+                questionTextView.setText(question.getQuestion() + choices);
                 //questionTextView.setText(question.getQuestion()+choices);
             } catch (Exception e) {
                 log(e, "error while setting the question text view");
@@ -321,7 +323,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isAllDOne() {
+        return questionsTrack.size() == 170;
+    }
+
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
+        System.out.println("isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
         return fromDB.equals(fromFront);
     }
 
@@ -350,12 +357,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String decile) {
-            System.out.println("post ex dec task");
-            questionTextView.setText("Vous etes apres " + Integer.parseInt(decile)*10 + "% des joueurs (<= calcul pas encore fiable #test #inConstruction)");
+            System.out.println("post ex dec task, decile:" + decile);
+            try {
+                questionTextView.setText("Vous etes apres " + Integer.parseInt(decile) * 10 + "% des joueurs (<= calcul pas encore fiable #test #inConstruction)");
+            } catch (Exception e) {
+                log(e, "Error in rank result display");
+                questionTextView.setText("Calcul du resultat KO");
+            }
         }
 
         private String getDecile(String id) {
-            OkHttpClient client =  initRequest();
+            OkHttpClient client = initRequest();
 
             Request request = new Request.Builder()
                     .url(DECILE_URL_GET + id)
@@ -387,13 +399,13 @@ public class MainActivity extends AppCompatActivity {
         boolean error = false;
         try {
             question = new Gson().fromJson(result, Question.class);
-            System.out.println("VV quest"+question.toString());
+            System.out.println("VV quest" + question.toString());
         } catch (Exception e) {
             error = true;
             nextQuestionId = getRandomQuestionId();
             questionTextView.setText("CLOUD HS. REDEPLOY");
             answerTextView.setVisibility(View.INVISIBLE);
-            hideButtons();
+            hide();
         }
         return error;
     }
@@ -440,6 +452,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
     private void declareLinkbtn() {
         linkButton = (Button) findViewById(R.id.linkbtn);
         linkButton.setVisibility(View.INVISIBLE);
@@ -455,6 +468,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareFbtn() {
         fButton = (Button) findViewById(R.id.fbtn);
+        fButton.setVisibility(View.INVISIBLE);
         fButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -465,6 +479,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareEbtn() {
         eButton = (Button) findViewById(R.id.ebtn);
+        eButton.setVisibility(View.INVISIBLE);
         eButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -475,6 +490,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareDbtn() {
         dButton = (Button) findViewById(R.id.dbtn);
+        dButton.setVisibility(View.INVISIBLE);
         dButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -485,6 +501,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareCbtn() {
         cButton = (Button) findViewById(R.id.cbtn);
+        cButton.setVisibility(View.INVISIBLE);
         cButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -495,6 +512,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareBbtn() {
         bButton = (Button) findViewById(R.id.bbtn);
+        bButton.setVisibility(View.INVISIBLE);
         bButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -505,6 +523,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void declareAbtn() {
         aButton = (Button) findViewById(R.id.abtn);
+        aButton.setVisibility(View.INVISIBLE);
         aButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -529,11 +548,11 @@ public class MainActivity extends AppCompatActivity {
     private void hideCDEFButtons() {
         cButton.setVisibility(View.INVISIBLE);
         answerCTextView.setVisibility(View.INVISIBLE);
-
         hideDEFButtons();
     }
 
-    private void hideButtons() {
+    private void hide() {
+        imageView.setVisibility(View.GONE);
         aButton.setVisibility(View.INVISIBLE);
         answerATextView.setVisibility(View.INVISIBLE);
         bButton.setVisibility(View.INVISIBLE);
@@ -542,6 +561,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displayButtons() {
+        imageView.setVisibility(View.GONE);
         aButton.setVisibility(View.VISIBLE);
         answerATextView.setVisibility(View.VISIBLE);
         bButton.setVisibility(View.VISIBLE);
@@ -550,6 +570,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displayCDEFButtons() {
+        imageView.setVisibility(View.GONE);
         cButton.setVisibility(View.VISIBLE);
         answerCTextView.setVisibility(View.VISIBLE);
         dButton.setVisibility(View.VISIBLE);
