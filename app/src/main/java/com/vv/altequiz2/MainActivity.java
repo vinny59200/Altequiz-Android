@@ -24,9 +24,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 
 import okhttp3.Interceptor;
@@ -99,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
         declareFbtn();
 
-        launchTaskWithAnswer("A");//TODO smell code
+        launchTaskWithAnswer("BLANK_NOT_PROCESSED");
     }
 
     @Override
@@ -158,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne()) {
+            if (isOver()) {
                 int questionIdForDecile = getQuestionIdForDecile();
                 handleDisplayWhenOver();
                 launchDecileTask(questionIdForDecile);
@@ -189,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                 nextQuestionJSON = response.body().string();
             } catch (Exception e) {
                 System.out.println("vv 987 retry getNextQuestionFromPOSTRequest");
-                log(e, "error while getting question JSON post request");
+                logAltequiz(e, "error while getting question JSON post request");
                 return getNextQuestionFromPOSTRequest(client, request);
 
             }
@@ -228,24 +225,6 @@ public class MainActivity extends AppCompatActivity {
             return questionJSON;
         }
 
-        private String subGetQuestionJSON() {
-            OkHttpClient client = initRequest();
-            Request request = new Request.Builder()
-                    .url(URL_GET + nextQuestionId)
-                    .build();
-            updateProgressBar(40);
-            String questionJson = null;
-            try (Response response = client.newCall(request).execute()) {
-                updateProgressBar(60);
-                questionJson = response.body().string();
-                questionJson = updateQuestionJSONWithAnswerFromFront(questionJson);
-            } catch (Exception e) {
-                e.printStackTrace();
-                log(e, "error in the sub process of getting JSON question");
-            }
-            return questionJson;
-        }
-
         private String subGetFirstQuestionJSON() {
             OkHttpClient client = initRequest();
             System.out.println("VV 883 getting next first question");
@@ -260,7 +239,25 @@ public class MainActivity extends AppCompatActivity {
                 questionJson = subGetQuestionJSON();
             } catch (Exception e) {
                 e.printStackTrace();
-                log(e, "error in the sub process of getting first JSON question");
+                logAltequiz(e, "error in the sub process of getting first JSON question");
+            }
+            return questionJson;
+        }
+
+        private String subGetQuestionJSON() {
+            OkHttpClient client = initRequest();
+            Request request = new Request.Builder()
+                    .url(URL_GET + nextQuestionId)
+                    .build();
+            updateProgressBar(40);
+            String questionJson = null;
+            try (Response response = client.newCall(request).execute()) {
+                updateProgressBar(60);
+                questionJson = response.body().string();
+                questionJson = updateQuestionJSONWithAnswerFromFront(questionJson);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logAltequiz(e, "error in the sub process of getting JSON question");
             }
             return questionJson;
         }
@@ -273,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
                 questionsTrack.add(question);
                 questionJson = new Gson().toJson(question, Question.class);
             } catch (Exception e) {
-                log(e, "error while modifying question JSON with answer from the front");
+                logAltequiz(e, "error while modifying question JSON with answer from the front");
             }
             return questionJson;
         }
@@ -310,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 questionTextView.setText("Vous etes meilleur que " + calculateScore(decile) + "% des joueurs.");
             } catch (Exception e) {
-                log(e, "Error in rank result display");
+                logAltequiz(e, "Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
             }
         }
@@ -330,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
                 String result = response.body().string();
                 return result.substring(0, result.length() - 2);
             } catch (IOException e) {
-                log(e, "decileKO");
+                logAltequiz(e, "decileKO");
                 return getDecile(id);
             }
         }
@@ -344,7 +341,9 @@ public class MainActivity extends AppCompatActivity {
     //                                 __/ |
     //                                |___/
 
-
+    private boolean isOver() {
+        return (!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne();
+    }
 
     private void launchDecileTask(int questionIdForDecile) {
         new DecileTask("" + questionIdForDecile).execute();
@@ -363,7 +362,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
-        if (questionsTrack.isEmpty()) {
+        if (isAnswersAllGood && questionsTrack.isEmpty()) {
             System.out.println("VV 688 case true for first try");
             return true;
         } else {
@@ -389,7 +388,7 @@ public class MainActivity extends AppCompatActivity {
                 .build();
     }
 
-    private void log(Exception e, String str) {
+    private void logAltequiz(Exception e, String str) {
         Log.e("altequiz", str + e.getMessage());
     }
 
@@ -421,7 +420,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateQuestionTextView() {
         try {
-            String choices = "";
             int cpt = 1;
             for (String choice : question.getChoices_content().split(" ### ")) {
                 switch (cpt) {
@@ -446,10 +444,9 @@ public class MainActivity extends AppCompatActivity {
                 }
                 cpt++;
             }
-
-            questionTextView.setText(question.getQuestion() + choices);
+            questionTextView.setText(question.getQuestion());
         } catch (Exception e) {
-            log(e, "error while setting the question text view");
+            logAltequiz(e, "error while setting the question text view");
         }
     }
 
@@ -464,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
         answerDTextView.setVisibility(View.INVISIBLE);
         answerETextView.setVisibility(View.INVISIBLE);
         answerFTextView.setVisibility(View.INVISIBLE);
-        questionTextView.setText("Votre resultat est en cours de calcul");
+        questionTextView.setText("Votre résultat est en cours de calcul");
         displayBlogToast();
     }
 
