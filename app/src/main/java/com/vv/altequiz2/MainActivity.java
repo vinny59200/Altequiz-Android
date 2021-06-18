@@ -162,17 +162,12 @@ public class MainActivity extends AppCompatActivity {
                 int questionIdForDecile = getQuestionIdForDecile();
                 handleDisplayWhenOver();
                 launchDecileTask(questionIdForDecile);
-                displayBlogToast();
             } else {
                 question = new Gson().fromJson(result, Question.class);
-
-
-                tipTextView.setText(question.getAnswer());
                 nextQuestionId = (int) question.getId();
-
                 handleDisplayWhenNotOver();
-
             }
+
             enableButtons();
         }
 
@@ -216,7 +211,10 @@ public class MainActivity extends AppCompatActivity {
         private String getQuestionJSON() {
             String questionJSON = null;
             questionJSON = handleFirstOrNoJSON();
-            while (questionJSON == null) questionJSON = handleFirstOrNoJSON();
+            while (questionJSON == null) {
+                System.out.println("VV 116 retry because JSON badly shaped");
+                questionJSON = handleFirstOrNoJSON();
+            }
             return questionJSON;
         }
 
@@ -227,13 +225,11 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 questionJSON = subGetQuestionJSON();
             }
-
             return questionJSON;
         }
 
         private String subGetQuestionJSON() {
             OkHttpClient client = initRequest();
-            System.out.println("VV234" + URL_GET + nextQuestionId);
             Request request = new Request.Builder()
                     .url(URL_GET + nextQuestionId)
                     .build();
@@ -252,6 +248,7 @@ public class MainActivity extends AppCompatActivity {
 
         private String subGetFirstQuestionJSON() {
             OkHttpClient client = initRequest();
+            System.out.println("VV 883 getting next first question");
             Request request = new Request.Builder()
                     .url(FIRST_URL_GET)
                     .build();
@@ -282,104 +279,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void handleDisplayWhenNotOver() {
-        updateQuestionTextView();
-        displayCDEFButtons();
-        if (Integer.valueOf(question.getChoices_count()) == 2) {
-            hideCDEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 3) {
-            hideDEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 4) {
-            hideEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 5) {
-            fButton.setVisibility(View.INVISIBLE);
-        }
-    }
-
-    private void updateQuestionTextView() {
-        try {
-            String choices = "";
-            int cpt = 1;
-            for (String choice : question.getChoices_content().split(" ### ")) {
-                //for(String choice: question.getChoices_content().split("###")){
-                //choices=new String(choices+"\n"+choice.trim());
-                switch (cpt) {
-                    case 1:
-                        answerATextView.setText(choice.trim().substring(2));
-                        break;
-                    case 2:
-                        answerBTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 3:
-                        answerCTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 4:
-                        answerDTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 5:
-                        answerETextView.setText(choice.trim().substring(2));
-                        break;
-                    case 6:
-                        answerFTextView.setText(choice.trim().substring(2));
-                        break;
-                    default:
-                        answerATextView.setText(choice.trim().substring(2));
-                }
-                cpt++;
-            }
-
-            questionTextView.setText(question.getQuestion() + choices);
-            //questionTextView.setText(question.getQuestion()+choices);
-        } catch (Exception e) {
-            log(e, "error while setting the question text view");
-        }
-    }
-
-    private void launchDecileTask(int questionIdForDecile) {
-        new DecileTask("" + questionIdForDecile).execute();
-    }
-
-    private void displayBlogToast() {
-        Toast.makeText(getApplicationContext(),
-                "Decouvrez les reponses dans le blog!",
-                Toast.LENGTH_SHORT).show();
-    }
-
-    private void handleDisplayWhenOver() {
-        hide();
-        replayButton.setVisibility(View.VISIBLE);
-        blogButton.setVisibility(View.VISIBLE);
-        tipTextView.setVisibility(View.GONE);
-        answerATextView.setVisibility(View.INVISIBLE);
-        answerBTextView.setVisibility(View.INVISIBLE);
-        answerCTextView.setVisibility(View.INVISIBLE);
-        answerDTextView.setVisibility(View.INVISIBLE);
-        answerETextView.setVisibility(View.INVISIBLE);
-        answerFTextView.setVisibility(View.INVISIBLE);
-        questionTextView.setText("Votre resultat est en cours de calcul");
-    }
-
-    private int getQuestionIdForDecile() {
-        int questionIdForDecile = 0;
-        Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
-        questionIdForDecile = (int) finalKarmaQuestion.getId();
-        return questionIdForDecile;
-    }
-
-    private boolean isAllDOne() {
-        //TODO change it to isMaxScoreReached
-        return questionsTrack.size() == 170;
-    }
-
-    private boolean isAnswersAllGood(String fromDB, String fromFront) {
-        if (questionsTrack.isEmpty()) {
-            System.out.println("VV 688 case true for first try");
-            return true;
-        } else {
-            System.out.println("VV 688 isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
-            return fromDB.equals(fromFront);
-        }
-    }
 
     //   ______          _ _              _____         _
     //   |  _  \        (_) |            |_   _|       | |
@@ -445,15 +344,37 @@ public class MainActivity extends AppCompatActivity {
     //                                 __/ |
     //                                |___/
 
+
+
+    private void launchDecileTask(int questionIdForDecile) {
+        new DecileTask("" + questionIdForDecile).execute();
+    }
+
+    private int getQuestionIdForDecile() {
+        int questionIdForDecile = 0;
+        Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
+        questionIdForDecile = (int) finalKarmaQuestion.getId();
+        return questionIdForDecile;
+    }
+
+    private boolean isAllDOne() {
+        //TODO change it to isMaxScoreReached
+        return questionsTrack.size() == 170;
+    }
+
+    private boolean isAnswersAllGood(String fromDB, String fromFront) {
+        if (questionsTrack.isEmpty()) {
+            System.out.println("VV 688 case true for first try");
+            return true;
+        } else {
+            System.out.println("VV 688 isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
+            return fromDB.equals(fromFront);
+        }
+    }
     private void launchTaskWithAnswer(String answer) {
         new Task(answer).execute();
     }
 
-
-
-    private void updateProgressBar(int step) {
-        progressBar.setProgress(step);
-    }
 
     @NotNull
     private OkHttpClient initRequest() {
@@ -466,6 +387,96 @@ public class MainActivity extends AppCompatActivity {
                     }
                 })
                 .build();
+    }
+
+    private void log(Exception e, String str) {
+        Log.e("altequiz", str + e.getMessage());
+    }
+
+//
+//    ______ _           _
+//    |  _  (_)         | |
+//    | | | |_ ___ _ __ | | __ _ _   _
+//    | | | | / __| '_ \| |/ _` | | | |
+//    | |/ /| \__ \ |_) | | (_| | |_| |
+//     ___/ |_|___/ .__/|_|\__,_|\__, |
+//                 | |             __/ |
+//                 |_|            |___/
+
+
+    private void handleDisplayWhenNotOver() {
+        tipTextView.setText(question.getAnswer());
+        updateQuestionTextView();
+        displayCDEFButtons();
+        if (Integer.valueOf(question.getChoices_count()) == 2) {
+            hideCDEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 3) {
+            hideDEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 4) {
+            hideEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 5) {
+            fButton.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    private void updateQuestionTextView() {
+        try {
+            String choices = "";
+            int cpt = 1;
+            for (String choice : question.getChoices_content().split(" ### ")) {
+                switch (cpt) {
+                    case 1:
+                        answerATextView.setText(choice.trim().substring(2));
+                        break;
+                    case 2:
+                        answerBTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 3:
+                        answerCTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 4:
+                        answerDTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 5:
+                        answerETextView.setText(choice.trim().substring(2));
+                        break;
+                    case 6:
+                        answerFTextView.setText(choice.trim().substring(2));
+                        break;
+                }
+                cpt++;
+            }
+
+            questionTextView.setText(question.getQuestion() + choices);
+        } catch (Exception e) {
+            log(e, "error while setting the question text view");
+        }
+    }
+
+    private void handleDisplayWhenOver() {
+        hide();
+        replayButton.setVisibility(View.VISIBLE);
+        blogButton.setVisibility(View.VISIBLE);
+        tipTextView.setVisibility(View.GONE);
+        answerATextView.setVisibility(View.INVISIBLE);
+        answerBTextView.setVisibility(View.INVISIBLE);
+        answerCTextView.setVisibility(View.INVISIBLE);
+        answerDTextView.setVisibility(View.INVISIBLE);
+        answerETextView.setVisibility(View.INVISIBLE);
+        answerFTextView.setVisibility(View.INVISIBLE);
+        questionTextView.setText("Votre resultat est en cours de calcul");
+        displayBlogToast();
+    }
+
+    private void displayBlogToast() {
+        Toast.makeText(getApplicationContext(),
+                "Découvrez les réponses dans le blog!",
+                Toast.LENGTH_SHORT).show();
+    }
+
+
+    private void updateProgressBar(int step) {
+        progressBar.setProgress(step);
     }
 
     private void declareReplaybtn() {
@@ -491,7 +502,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 
     private void declareFbtn() {
         fButton = (Button) findViewById(R.id.fbtn);
@@ -587,15 +597,6 @@ public class MainActivity extends AppCompatActivity {
         hideCDEFButtons();
     }
 
-    private void displayButtons() {
-        imageView.setVisibility(View.GONE);
-        aButton.setVisibility(View.VISIBLE);
-        answerATextView.setVisibility(View.VISIBLE);
-        bButton.setVisibility(View.VISIBLE);
-        answerBTextView.setVisibility(View.VISIBLE);
-        displayCDEFButtons();
-    }
-
     private void displayCDEFButtons() {
         imageView.setVisibility(View.GONE);
         cButton.setVisibility(View.VISIBLE);
@@ -626,9 +627,7 @@ public class MainActivity extends AppCompatActivity {
         fButton.setEnabled(false);
     }
 
-    private void log(Exception e, String str) {
-        Log.e("altequiz", str + e.getMessage());
-    }
+
 
     //    _____                              _____ _
     //   |_   _|                            /  __ \ |
