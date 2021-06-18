@@ -122,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
 
         public static final String URL_POST = "http://129.213.40.35:5000/send/";
         public static final String URL_GET = "http://129.213.40.35:5000/question/";
+        public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
         String answerFromFront = null;
 
         public Task(String answer) {
@@ -143,6 +144,9 @@ public class MainActivity extends AppCompatActivity {
 
             String nextQuestionJSON = getNextQuestionFromPOSTRequest(client, request);
 
+            System.out.println("vv 987 bis "+nextQuestionJSON);
+
+
             return nextQuestionJSON;
         }
 
@@ -151,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
+            System.out.println(result);
             updateProgressBar(100);
 
             bButton.setVisibility(View.VISIBLE);
@@ -158,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
 
             if ((!isAnswersAllGood && questionsTrack.size() > 3) || isAllDOne()) {
                 int questionIdForDecile = 0;
-                Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size()-1);
+                Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
                 questionIdForDecile = (int) finalKarmaQuestion.getId();
                 hide();
                 replayButton.setVisibility(View.VISIBLE);
@@ -170,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
                 answerDTextView.setVisibility(View.INVISIBLE);
                 answerETextView.setVisibility(View.INVISIBLE);
                 answerFTextView.setVisibility(View.INVISIBLE);
-                questionTextView.setText("Votre classement est en cours de calcul");
+                questionTextView.setText("Votre resultat est en cours de calcul");
                 new DecileTask("" + questionIdForDecile).execute();
                 Toast.makeText(getApplicationContext(),
                         "Decouvrez les reponses dans le blog!",
@@ -217,12 +222,10 @@ public class MainActivity extends AppCompatActivity {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
             } catch (Exception e) {
+                System.out.println("vv 987 quater");
                 e.printStackTrace();
                 log(e, "error while getting question JSON post request");
-                nextQuestionJSON = "{\"id\": 11, \"question\": \"EN QUOI L\\u2019ACC\\u00c8S \\u00c0 L\\u2019INFORMATION PEUT-IL AIDER \\u00c0 SORTIR DE LA\n" +
-                        "PR\\u00c9CARIT\\u00c9?\", \"choices_count\": 4, \"choices_content\": \" A Il favorise la croissance \\u00e9conomique et le\n" +
-                        "d\\u00e9veloppement ### B Il permet de se procurer des contenus accessibles et utiles facilement ### C Il facilite les\n" +
-                        "\\u00e9changes et la communication ### D Toutes ces r\\u00e9ponses\", \"answer\": \"D\", \"karma\": -3}";
+                return getNextQuestionFromPOSTRequest(client, request);
 
             }
             return nextQuestionJSON;
@@ -241,8 +244,22 @@ public class MainActivity extends AppCompatActivity {
 
         @NotNull
         private String getQuestionJSON() {
-            String questionJSON = subGetQuestionJSON();
-            while (questionJSON == null) questionJSON = subGetQuestionJSON();//TODO smell code
+            String questionJSON = null;
+            questionJSON = handleFirstOrNoJSON();
+            while (questionJSON == null) questionJSON = handleFirstOrNoJSON();
+            return questionJSON;
+        }
+
+        private String handleFirstOrNoJSON() {
+            String questionJSON;
+            if (questionsTrack.isEmpty()) {
+                System.out.println("vv 987 ter");
+                questionJSON = subGetFirstQuestionJSON();
+            } else {
+                questionJSON = subGetQuestionJSON();
+            }
+            System.out.println("VV 987 "+questionJSON);
+
             return questionJSON;
         }
 
@@ -261,6 +278,24 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 log(e, "error in the sub process of getting JSON question");
+            }
+            return questionJson;
+        }
+
+        private String subGetFirstQuestionJSON() {
+            OkHttpClient client = initRequest();
+            Request request = new Request.Builder()
+                    .url(FIRST_URL_GET)
+                    .build();
+            updateProgressBar(40);
+            String questionJson = null;
+            try (Response response = client.newCall(request).execute()) {
+                updateProgressBar(60);
+                nextQuestionId = Integer.valueOf(response.body().string()).intValue();
+                questionJson=subGetQuestionJSON();
+            } catch (Exception e) {
+                e.printStackTrace();
+                log(e, "error in the sub process of getting first JSON question");
             }
             return questionJson;
         }
@@ -358,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String decile) {
             System.out.println("post ex dec task, decile:" + decile);
             try {
-                questionTextView.setText("Votre score est de " + calculateScore(decile) +"%");
+                questionTextView.setText("Vous etes meilleur que " + calculateScore(decile) + "% des joueurs.");
             } catch (Exception e) {
                 log(e, "Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
@@ -366,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private int calculateScore(String decile) {
-            return Integer.parseInt(decile)*10;
+            return Integer.parseInt(decile) * 10;
         }
 
         private String getDecile(String id) {
