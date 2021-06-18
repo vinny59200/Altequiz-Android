@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.common.collect.Ordering;
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
@@ -142,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
             updateProgressBar(80);
 
             String nextQuestionJSON = getNextQuestionFromPOSTRequest(client, request);
+            Log.e(nextQuestionJSON,"VV 444 current question:");
 
             return nextQuestionJSON;
         }
@@ -156,15 +158,13 @@ public class MainActivity extends AppCompatActivity {
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 9) || isAllDOne()) {
+            if ((!isAnswersAllGood && questionsTrack.size() > 3) || isAllDOne()) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
-                for (Question quest : questionsTrack) {
-                    if (quest.getKarma() > max) {
-                        max = quest.getKarma();
-                        questionIdForDecile = (int) quest.getId();
-                    }
-                }
+                Question maxKarmaQuestion = questionsTrack.stream().max( (Question o1, Question o2)->Integer.valueOf(o1.getKarma()).compareTo(Integer.valueOf(o2.getKarma()))).get();
+                questionIdForDecile = (int) maxKarmaQuestion.getId();
+                System.out.println("VV 444 maxKarmaQuestion:"+question.toString());
+
                 hide();
                 replayButton.setVisibility(View.VISIBLE);
                 linkButton.setVisibility(View.VISIBLE);
@@ -331,6 +331,12 @@ public class MainActivity extends AppCompatActivity {
         return questionsTrack.size() == 170;
     }
 
+    private boolean isKarmaValuesSorted() {
+        List<Integer> karmas = questionsTrack.stream().map(quest->quest.getKarma()).collect(Collectors.toList());
+        boolean sorted = Ordering.natural().isOrdered(karmas);
+        return sorted;
+    }
+
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
         System.out.println("isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
         return fromDB.equals(fromFront);
@@ -356,7 +362,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
-            System.out.println("doing decile task");
+            System.out.println("doing decile task, your final question id is:"+finalQuestionId);
             return getDecile(finalQuestionId);
         }
 
