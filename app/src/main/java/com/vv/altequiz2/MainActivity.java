@@ -156,15 +156,10 @@ public class MainActivity extends AppCompatActivity {
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 9) || isAllDOne()) {
-                int max = Integer.MIN_VALUE;
+            if ((!isAnswersAllGood && questionsTrack.size() > 3) || isAllDOne()) {
                 int questionIdForDecile = 0;
-                for (Question quest : questionsTrack) {
-                    if (quest.getKarma() > max) {
-                        max = quest.getKarma();
-                        questionIdForDecile = (int) quest.getId();
-                    }
-                }
+                Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size()-1);
+                questionIdForDecile = (int) finalKarmaQuestion.getId();
                 hide();
                 replayButton.setVisibility(View.VISIBLE);
                 linkButton.setVisibility(View.VISIBLE);
@@ -363,11 +358,15 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String decile) {
             System.out.println("post ex dec task, decile:" + decile);
             try {
-                questionTextView.setText("Vous etes apres " + Integer.parseInt(decile) * 10 + "% des joueurs (<= calcul pas encore fiable #test #inConstruction)");
+                questionTextView.setText("Votre score est de " + calculateScore(decile) +"%");
             } catch (Exception e) {
                 log(e, "Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
             }
+        }
+
+        private int calculateScore(String decile) {
+            return Integer.parseInt(decile)*10;
         }
 
         private String getDecile(String id) {
@@ -382,8 +381,8 @@ public class MainActivity extends AppCompatActivity {
                 return result.substring(0, result.length() - 2);
             } catch (IOException e) {
                 log(e, "decileKO");
+                return getDecile(id);
             }
-            return "KO";
         }
     }
     //    ___       _   _       _ _                ______     _            _
