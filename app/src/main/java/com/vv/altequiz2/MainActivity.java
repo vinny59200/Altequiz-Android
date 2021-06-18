@@ -45,9 +45,10 @@ public class MainActivity extends AppCompatActivity {
     private static ProgressBar progressBar;
 
 
-    Question question;
+    Question question=null;
     List<Question> questionsTrack = new ArrayList<>();
     boolean isAnswersAllGood = true;
+    boolean isKarmaGrowing = true;
     int nextQuestionId = getRandomQuestionId();
 
     TextView questionTextView;
@@ -101,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
 
         declareFbtn();
 
-        launchTaskWithAnswer("A");//TODO smell code
+        launchTaskWithAnswer("XXX");//TODO smell code
     }
 
     @Override
@@ -123,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
         public static final String URL_POST = "http://129.213.40.35:5000/send/";
         public static final String URL_GET = "http://129.213.40.35:5000/question/";
+        public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
         String answerFromFront = null;
 
         public Task(String answer) {
@@ -158,12 +160,12 @@ public class MainActivity extends AppCompatActivity {
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 3) || isAllDOne()) {
+            if ((!isAnswersAllGood && questionsTrack.size() > 9) || (!isKarmaGrowing && questionsTrack.size() > 9) || isAllDOne()) {
                 int max = Integer.MIN_VALUE;
                 int questionIdForDecile = 0;
-                Question maxKarmaQuestion = questionsTrack.stream().max( (Question o1, Question o2)->Integer.valueOf(o1.getKarma()).compareTo(Integer.valueOf(o2.getKarma()))).get();
-                questionIdForDecile = (int) maxKarmaQuestion.getId();
-                System.out.println("VV 444 maxKarmaQuestion:"+question.toString());
+                Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size()-1);
+                questionIdForDecile = (int) finalKarmaQuestion.getId();
+                System.out.println("VV 444 finalKarmaQuestion:"+question.toString());
 
                 hide();
                 replayButton.setVisibility(View.VISIBLE);
@@ -189,8 +191,6 @@ public class MainActivity extends AppCompatActivity {
                     nextQuestionId = (int) question.getId();
 
                     displayCDEFButtons();
-                    System.out.println("VV 676 question count:" + question.getChoices_count());
-                    System.out.println("VV 676 last question count:" + questionsTrack.get(questionsTrack.size() - 1).getChoices_count());
                     if (Integer.valueOf(question.getChoices_count()) == 2) {
                         hideCDEFButtons();
                     } else if (Integer.valueOf(question.getChoices_count()) == 3) {
@@ -224,11 +224,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 log(e, "error while getting question JSON post request");
-                nextQuestionJSON = "{\"id\": 11, \"question\": \"EN QUOI L\\u2019ACC\\u00c8S \\u00c0 L\\u2019INFORMATION PEUT-IL AIDER \\u00c0 SORTIR DE LA\n" +
-                        "PR\\u00c9CARIT\\u00c9?\", \"choices_count\": 4, \"choices_content\": \" A Il favorise la croissance \\u00e9conomique et le\n" +
-                        "d\\u00e9veloppement ### B Il permet de se procurer des contenus accessibles et utiles facilement ### C Il facilite les\n" +
-                        "\\u00e9changes et la communication ### D Toutes ces r\\u00e9ponses\", \"answer\": \"D\", \"karma\": -3}";
-
+                return getNextQuestionFromPOSTRequest( client,  request);
             }
             return nextQuestionJSON;
         }
@@ -246,9 +242,8 @@ public class MainActivity extends AppCompatActivity {
 
         @NotNull
         private String getQuestionJSON() {
-            String questionJSON = subGetQuestionJSON();
-            while (questionJSON == null) questionJSON = subGetQuestionJSON();//TODO smell code
-            return questionJSON;
+            if( question==null && questionsTrack.isEmpty())return getFirst();
+            return subGetQuestionJSON();
         }
 
         private String subGetQuestionJSON() {
@@ -266,8 +261,37 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 log(e, "error in the sub process of getting JSON question");
+                return subGetQuestionJSON();
             }
             return questionJson;
+        }
+
+        private String getFirst() {
+            OkHttpClient client = initRequest();
+            System.out.println("VV234" + FIRST_URL_GET );
+            Request request = new Request.Builder()
+                    .url(FIRST_URL_GET)
+                    .build();
+            updateProgressBar(40);
+            String questionJson = null;
+
+            try (Response response = client.newCall(request).execute()) {
+                updateProgressBar(60);
+                try {
+                    Question question = new Gson().fromJson(response.body().string(), Question.class);
+                    isAnswersAllGood = true;
+                    questionsTrack.add(question);
+                    System.out.println(" VV 768 adding to quest track:"+question.toString());
+                    isKarmaGrowing=true;
+                    questionJson = new Gson().toJson(question, Question.class);
+                } catch (Exception e) {
+                    log(e, "error while modifying question JSON with answer from the front");
+                }
+                return questionJson;
+            } catch (IOException e) {
+                log(e, "VV 232 firstquestionKO");
+                return getFirst();
+            }
         }
 
         private String updateQuestionJSONWithAnswerFromFront(String questionJson) {
@@ -276,6 +300,8 @@ public class MainActivity extends AppCompatActivity {
                 isAnswersAllGood = isAnswersAllGood(question.getAnswer(), answerFromFront);
                 question.setAnswer(answerFromFront);
                 questionsTrack.add(question);
+                System.out.println(" VV 768 adding to quest track:"+question.toString());
+                isKarmaGrowing=isKarmaGrowing();
                 questionJson = new Gson().toJson(question, Question.class);
             } catch (Exception e) {
                 log(e, "error while modifying question JSON with answer from the front");
@@ -295,6 +321,9 @@ public class MainActivity extends AppCompatActivity {
                     //for(String choice: question.getChoices_content().split("###")){
                     //choices=new String(choices+"\n"+choice.trim());
                     switch (cpt) {
+                        case 0:
+                            answerATextView.setText(choice.trim().substring(2));
+                            break;
                         case 1:
                             answerATextView.setText(choice.trim().substring(2));
                             break;
@@ -327,20 +356,61 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isAllDOne() {
-        return questionsTrack.size() == 170;
+    private boolean isKarmaGrowing() {
+        if (questionsTrack.size() > 1) {
+            int currentKarma = (int) questionsTrack.get(questionsTrack.size() - 1).getKarma();
+            int previousKarma = (int) questionsTrack.get(questionsTrack.size() - 2).getKarma();
+            System.out.println("VV 555 karma growing, before:"+previousKarma+" ,after:"+currentKarma);
+            return currentKarma > previousKarma;
+        }
+        return true;
     }
 
-    private boolean isKarmaValuesSorted() {
-        List<Integer> karmas = questionsTrack.stream().map(quest->quest.getKarma()).collect(Collectors.toList());
-        boolean sorted = Ordering.natural().isOrdered(karmas);
-        return sorted;
+    private boolean isAllDOne() {
+        return questionsTrack.size() == 170;
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
         System.out.println("isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
         return fromDB.equals(fromFront);
     }
+
+
+
+
+
+    private class FirstQuestionTask extends AsyncTask<Void, Void, Question> {
+
+        public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
+
+        @Override
+        protected Question doInBackground(Void... params) {
+            System.out.println("getting first question task");
+            return getFirst();
+        }
+
+        protected void onPostExecute(Question firstQuestion) {
+           question=firstQuestion;
+        }
+
+        private Question getFirst() {
+            OkHttpClient client = initRequest();
+
+            Request request = new Request.Builder()
+                    .url(FIRST_URL_GET)
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                String result = response.body().string();
+                return new Gson().fromJson(result, Question.class);
+            } catch (IOException e) {
+                log(e, "VV 232 firstquestionKO");
+                return getFirst();
+            }
+//            return "KO";
+        }
+    }
+
 
     //   ______          _ _              _____         _
     //   |  _  \        (_) |            |_   _|       | |
@@ -369,11 +439,15 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String decile) {
             System.out.println("post ex dec task, decile:" + decile);
             try {
-                questionTextView.setText("Vous etes apres " + Integer.parseInt(decile) * 10 + "% des joueurs (<= calcul pas encore fiable #test #inConstruction)");
+                questionTextView.setText("Votre score est de " + calculateScore(decile) +"%");
             } catch (Exception e) {
                 log(e, "Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
             }
+        }
+
+        private int calculateScore(String decile) {
+            return Integer.parseInt(decile)*10;
         }
 
         private String getDecile(String id) {
@@ -388,8 +462,9 @@ public class MainActivity extends AppCompatActivity {
                 return result.substring(0, result.length() - 2);
             } catch (IOException e) {
                 log(e, "decileKO");
+                return getDecile(id);
             }
-            return "KO";
+//            return "KO";
         }
     }
     //    ___       _   _       _ _                ______     _            _
@@ -409,7 +484,6 @@ public class MainActivity extends AppCompatActivity {
         boolean error = false;
         try {
             question = new Gson().fromJson(result, Question.class);
-            System.out.println("VV quest" + question.toString());
         } catch (Exception e) {
             error = true;
             nextQuestionId = getRandomQuestionId();
