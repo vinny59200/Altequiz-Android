@@ -43,14 +43,13 @@ public class MainActivity extends AppCompatActivity {
             = MediaType.get("application/json; charset=utf-8");
     private static ProgressBar progressBar;
 
-
     Question question;
     List<Question> questionsTrack = new ArrayList<>();
     boolean isAnswersAllGood = true;
-    int nextQuestionId = getRandomQuestionId();
+    int nextQuestionId;
 
     TextView questionTextView;
-    TextView answerTextView;
+    TextView tipTextView;
     TextView answerATextView;
     TextView answerBTextView;
     TextView answerCTextView;
@@ -58,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     TextView answerETextView;
     TextView answerFTextView;
     Button replayButton;
-    Button linkButton;
+    Button blogButton;
     Button aButton;
     Button bButton;
     Button cButton;
@@ -80,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         answerFTextView = (TextView) findViewById(R.id.ftv);
         imageView = (ImageView) findViewById(R.id.image);
 
-        answerTextView = (TextView) findViewById(R.id.answertv);
+        tipTextView = (TextView) findViewById(R.id.answertv);
         progressBar = (ProgressBar) findViewById(R.id.bar);
         questionTextView = (TextView) findViewById(R.id.textview);
 
@@ -144,8 +143,7 @@ public class MainActivity extends AppCompatActivity {
 
             String nextQuestionJSON = getNextQuestionFromPOSTRequest(client, request);
 
-            System.out.println("vv 987 bis "+nextQuestionJSON);
-
+            System.out.println("vv 987  " + nextQuestionJSON);
 
             return nextQuestionJSON;
         }
@@ -155,52 +153,25 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
-            System.out.println(result);
             updateProgressBar(100);
 
             bButton.setVisibility(View.VISIBLE);
             aButton.setVisibility(View.VISIBLE);
 
-            if ((!isAnswersAllGood && questionsTrack.size() > 3) || isAllDOne()) {
-                int questionIdForDecile = 0;
-                Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
-                questionIdForDecile = (int) finalKarmaQuestion.getId();
-                hide();
-                replayButton.setVisibility(View.VISIBLE);
-                linkButton.setVisibility(View.VISIBLE);
-                answerTextView.setVisibility(View.INVISIBLE);
-                answerATextView.setVisibility(View.INVISIBLE);
-                answerBTextView.setVisibility(View.INVISIBLE);
-                answerCTextView.setVisibility(View.INVISIBLE);
-                answerDTextView.setVisibility(View.INVISIBLE);
-                answerETextView.setVisibility(View.INVISIBLE);
-                answerFTextView.setVisibility(View.INVISIBLE);
-                questionTextView.setText("Votre resultat est en cours de calcul");
-                new DecileTask("" + questionIdForDecile).execute();
-                Toast.makeText(getApplicationContext(),
-                        "Decouvrez les reponses dans le blog!",
-                        Toast.LENGTH_SHORT).show();
+            if ((!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne()) {
+                int questionIdForDecile = getQuestionIdForDecile();
+                handleDisplayWhenOver();
+                launchDecileTask(questionIdForDecile);
+                displayBlogToast();
             } else {
-                boolean error = isQuestionUpdateFailed(result);//TODO smell code
+                question = new Gson().fromJson(result, Question.class);
 
-                if (!error && isQuestionTextViewValid()) {
-                    updateQuestionTextView();
-                    answerTextView.setText(question.getAnswer());
-                    nextQuestionId = (int) question.getId();
 
-                    displayCDEFButtons();
-                    System.out.println("VV 676 question count:" + question.getChoices_count());
-                    System.out.println("VV 676 last question count:" + questionsTrack.get(questionsTrack.size() - 1).getChoices_count());
-                    if (Integer.valueOf(question.getChoices_count()) == 2) {
-                        hideCDEFButtons();
-                    } else if (Integer.valueOf(question.getChoices_count()) == 3) {
-                        hideDEFButtons();
-                    } else if (Integer.valueOf(question.getChoices_count()) == 4) {
-                        hideEFButtons();
-                    } else if (Integer.valueOf(question.getChoices_count()) == 5) {
-                        fButton.setVisibility(View.INVISIBLE);
-                    }
-                }
+                tipTextView.setText(question.getAnswer());
+                nextQuestionId = (int) question.getId();
+
+                handleDisplayWhenNotOver();
+
             }
             enableButtons();
         }
@@ -222,8 +193,7 @@ public class MainActivity extends AppCompatActivity {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
             } catch (Exception e) {
-                System.out.println("vv 987 quater");
-                e.printStackTrace();
+                System.out.println("vv 987 retry getNextQuestionFromPOSTRequest");
                 log(e, "error while getting question JSON post request");
                 return getNextQuestionFromPOSTRequest(client, request);
 
@@ -253,12 +223,10 @@ public class MainActivity extends AppCompatActivity {
         private String handleFirstOrNoJSON() {
             String questionJSON;
             if (questionsTrack.isEmpty()) {
-                System.out.println("vv 987 ter");
                 questionJSON = subGetFirstQuestionJSON();
             } else {
                 questionJSON = subGetQuestionJSON();
             }
-            System.out.println("VV 987 "+questionJSON);
 
             return questionJSON;
         }
@@ -292,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(60);
                 nextQuestionId = Integer.valueOf(response.body().string()).intValue();
-                questionJson=subGetQuestionJSON();
+                questionJson = subGetQuestionJSON();
             } catch (Exception e) {
                 e.printStackTrace();
                 log(e, "error in the sub process of getting first JSON question");
@@ -312,58 +280,105 @@ public class MainActivity extends AppCompatActivity {
             }
             return questionJson;
         }
+    }
 
-        private boolean isQuestionTextViewValid() {
-            return question != null && questionTextView != null;
-        }
-
-        private void updateQuestionTextView() {
-            try {
-                String choices = "";
-                int cpt = 1;
-                for (String choice : question.getChoices_content().split(" ### ")) {
-                    //for(String choice: question.getChoices_content().split("###")){
-                    //choices=new String(choices+"\n"+choice.trim());
-                    switch (cpt) {
-                        case 1:
-                            answerATextView.setText(choice.trim().substring(2));
-                            break;
-                        case 2:
-                            answerBTextView.setText(choice.trim().substring(2));
-                            break;
-                        case 3:
-                            answerCTextView.setText(choice.trim().substring(2));
-                            break;
-                        case 4:
-                            answerDTextView.setText(choice.trim().substring(2));
-                            break;
-                        case 5:
-                            answerETextView.setText(choice.trim().substring(2));
-                            break;
-                        case 6:
-                            answerFTextView.setText(choice.trim().substring(2));
-                            break;
-                        default:
-                            answerATextView.setText(choice.trim().substring(2));
-                    }
-                    cpt++;
-                }
-
-                questionTextView.setText(question.getQuestion() + choices);
-                //questionTextView.setText(question.getQuestion()+choices);
-            } catch (Exception e) {
-                log(e, "error while setting the question text view");
-            }
+    private void handleDisplayWhenNotOver() {
+        updateQuestionTextView();
+        displayCDEFButtons();
+        if (Integer.valueOf(question.getChoices_count()) == 2) {
+            hideCDEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 3) {
+            hideDEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 4) {
+            hideEFButtons();
+        } else if (Integer.valueOf(question.getChoices_count()) == 5) {
+            fButton.setVisibility(View.INVISIBLE);
         }
     }
 
+    private void updateQuestionTextView() {
+        try {
+            String choices = "";
+            int cpt = 1;
+            for (String choice : question.getChoices_content().split(" ### ")) {
+                //for(String choice: question.getChoices_content().split("###")){
+                //choices=new String(choices+"\n"+choice.trim());
+                switch (cpt) {
+                    case 1:
+                        answerATextView.setText(choice.trim().substring(2));
+                        break;
+                    case 2:
+                        answerBTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 3:
+                        answerCTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 4:
+                        answerDTextView.setText(choice.trim().substring(2));
+                        break;
+                    case 5:
+                        answerETextView.setText(choice.trim().substring(2));
+                        break;
+                    case 6:
+                        answerFTextView.setText(choice.trim().substring(2));
+                        break;
+                    default:
+                        answerATextView.setText(choice.trim().substring(2));
+                }
+                cpt++;
+            }
+
+            questionTextView.setText(question.getQuestion() + choices);
+            //questionTextView.setText(question.getQuestion()+choices);
+        } catch (Exception e) {
+            log(e, "error while setting the question text view");
+        }
+    }
+
+    private void launchDecileTask(int questionIdForDecile) {
+        new DecileTask("" + questionIdForDecile).execute();
+    }
+
+    private void displayBlogToast() {
+        Toast.makeText(getApplicationContext(),
+                "Decouvrez les reponses dans le blog!",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void handleDisplayWhenOver() {
+        hide();
+        replayButton.setVisibility(View.VISIBLE);
+        blogButton.setVisibility(View.VISIBLE);
+        tipTextView.setVisibility(View.GONE);
+        answerATextView.setVisibility(View.INVISIBLE);
+        answerBTextView.setVisibility(View.INVISIBLE);
+        answerCTextView.setVisibility(View.INVISIBLE);
+        answerDTextView.setVisibility(View.INVISIBLE);
+        answerETextView.setVisibility(View.INVISIBLE);
+        answerFTextView.setVisibility(View.INVISIBLE);
+        questionTextView.setText("Votre resultat est en cours de calcul");
+    }
+
+    private int getQuestionIdForDecile() {
+        int questionIdForDecile = 0;
+        Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
+        questionIdForDecile = (int) finalKarmaQuestion.getId();
+        return questionIdForDecile;
+    }
+
     private boolean isAllDOne() {
+        //TODO change it to isMaxScoreReached
         return questionsTrack.size() == 170;
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
-        System.out.println("isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
-        return fromDB.equals(fromFront);
+        if (questionsTrack.isEmpty()) {
+            System.out.println("VV 688 case true for first try");
+            return true;
+        } else {
+            System.out.println("VV 688 isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
+            return fromDB.equals(fromFront);
+        }
     }
 
     //   ______          _ _              _____         _
@@ -386,8 +401,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
-            System.out.println("doing decile task");
-            return getDecile(finalQuestionId);
+            String decile = getDecile(finalQuestionId);
+            System.out.println("VV 223 doing decile task, decile=" + decile);
+            return decile;
         }
 
         protected void onPostExecute(String decile) {
@@ -433,34 +449,7 @@ public class MainActivity extends AppCompatActivity {
         new Task(answer).execute();
     }
 
-    private boolean isQuestionUpdateFailed(String result) {
-        boolean error = false;
-        try {
-            question = new Gson().fromJson(result, Question.class);
-            System.out.println("VV quest" + question.toString());
-        } catch (Exception e) {
-            error = true;
-            nextQuestionId = getRandomQuestionId();
-            questionTextView.setText("CLOUD HS. REDEPLOY");
-            answerTextView.setVisibility(View.INVISIBLE);
-            hide();
-        }
-        return error;
-    }
 
-    private int getRandomQuestionId() {
-        if (questionsTrack.isEmpty()) return new Random().nextInt(170) + 2;
-        List<String> _170 = IntStream.range(2, 172)
-                .mapToObj(i -> ((Integer) i).toString()) //i is an int, not an Integer
-                .collect(Collectors.toList());
-        List<String> ids = new ArrayList<>();
-        for (Question quest : questionsTrack) {
-            ids.add("" + ((int) quest.getId()));
-        }
-        _170.removeAll(ids);
-        Random randomizer = new Random();
-        return Integer.parseInt(_170.get(randomizer.nextInt(_170.size())));
-    }
 
     private void updateProgressBar(int step) {
         progressBar.setProgress(step);
@@ -492,9 +481,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void declareLinkbtn() {
-        linkButton = (Button) findViewById(R.id.blogbtn);
-        linkButton.setVisibility(View.INVISIBLE);
-        linkButton.setOnClickListener(new View.OnClickListener() {
+        blogButton = (Button) findViewById(R.id.blogbtn);
+        blogButton.setVisibility(View.GONE);
+        blogButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
@@ -658,13 +647,21 @@ public class MainActivity extends AppCompatActivity {
         private int karma;
         private int choices_count;
 
-        public Question(int id, String question, String answer, int karma, int choices_count, String choices_content) {
+        public Question(int id, String question, String choices_content, String answer, int karma, int choices_count) {
             this.id = id;
             this.question = question;
+            this.choices_content = choices_content;
             this.answer = answer;
             this.karma = karma;
-            this.choices_content = choices_content;
             this.choices_count = choices_count;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
         }
 
         public String getQuestion() {
@@ -675,6 +672,14 @@ public class MainActivity extends AppCompatActivity {
             this.question = question;
         }
 
+        public String getChoices_content() {
+            return choices_content;
+        }
+
+        public void setChoices_content(String choices_content) {
+            this.choices_content = choices_content;
+        }
+
         public String getAnswer() {
             return answer;
         }
@@ -683,28 +688,12 @@ public class MainActivity extends AppCompatActivity {
             this.answer = answer;
         }
 
-        public double getId() {
-            return id;
-        }
-
-        public void setId(int id) {
-            this.id = id;
-        }
-
         public int getKarma() {
             return karma;
         }
 
         public void setKarma(int karma) {
             this.karma = karma;
-        }
-
-        public String getChoices_content() {
-            return choices_content;
-        }
-
-        public void setChoices_content(String choices_content) {
-            this.choices_content = choices_content;
         }
 
         public int getChoices_count() {
