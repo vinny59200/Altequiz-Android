@@ -161,7 +161,8 @@ public class MainActivity extends AppCompatActivity {
                 nextId = (int) question.getId();
                 handleDisplayWhenNotOver();
             }
-            logAltequiz("VV 700 quest Id:" + nextId + ", count quest:" + questionsStack.size() + ", perfect:" + isAnswersAllGood + " karma:" + question.getKarma());
+            logAltequiz("VV 700 quest Id:" + nextId + ", count quest:" + questionsStack.size() +
+                    ", perfect:" + isAnswersAllGood + " karma:" + question.getKarma());
             logAltequiz(result);
             enableButtons();
         }
@@ -201,7 +202,8 @@ public class MainActivity extends AppCompatActivity {
                     updateProgressBar(100);
                     json = resp.body().string();
                 } catch (Exception e) {
-                    logAltequiz("VV 6663 Retry main POST sending question request call for question id:" + nextId);
+                    logAltequiz("VV 6663 Retry main POST sending question request call " +
+                            "for question id:" + nextId);
                 }
                 if (json == null) {
                     return getQuestionJSON(true);
@@ -253,7 +255,8 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
             }
             if (json == null) {
-                logAltequiz("VV 6662 retry GET question JSON request call for question id:" + nextId);
+                logAltequiz("VV 6662 retry GET question JSON request call for question id:"
+                        + nextId);
                 return subGetQuestionJSON();
             } else {
                 Question q = new Gson().fromJson(json, Question.class);
@@ -293,7 +296,8 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String decile) {
             try {
-                questionTextView.setText("Vous etes meilleur que " + calculateScore(decile) + "% des joueurs.");
+                questionTextView.setText("Vous êtes meilleur(e) que " + calculateScore(decile)
+                        + "% des joueurs.");
             } catch (Exception e) {
                 logAltequiz("Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
@@ -356,7 +360,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromUser) {
-        logAltequiz("VV 226 answers: " + fromDB + " | " + fromUser +" (latter one from the user)");
+        logAltequiz("VV 226 answers: " + fromDB + " | " + fromUser
+                +" (latter one from the user)");
         if(BLANK_NOT_PROCESSED.equals(fromUser)){
              return true;
         }
@@ -376,7 +381,8 @@ public class MainActivity extends AppCompatActivity {
                 .addNetworkInterceptor(new Interceptor() {
                     @Override
                     public Response intercept(Chain chain) throws IOException {
-                        Request request = chain.request().newBuilder().addHeader("Connection", "close").build();
+                        Request request = chain.request().newBuilder()
+                                .addHeader("Connection", "close").build();
                         return chain.proceed(request);
                     }
                 })
@@ -484,7 +490,8 @@ public class MainActivity extends AppCompatActivity {
         blogButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
                 startActivity(browserIntent);
             }
         });
@@ -631,15 +638,6 @@ public class MainActivity extends AppCompatActivity {
         private String answer;
         private int karma;
         private int choices_count;
-
-        public Question(int id, String question, String choices_content, String answer, int karma, int choices_count) {
-            this.id = id;
-            this.question = question;
-            this.choices_content = choices_content;
-            this.answer = answer;
-            this.karma = karma;
-            this.choices_count = choices_count;
-        }
 
         public int getId() {
             return id;
