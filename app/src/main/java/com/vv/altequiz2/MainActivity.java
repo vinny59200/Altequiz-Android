@@ -295,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String decile) {
             try {
-                questionTextView.setText(String.format("Vous êtes meilleur(e) que %s des joueurs.",
+                questionTextView.setText(String.format("Vous êtes meilleur(e) que %s%% des joueurs.",
                         calculateScore(decile)));
             } catch (Exception e) {
                 logAltequiz("Error in rank result display");
