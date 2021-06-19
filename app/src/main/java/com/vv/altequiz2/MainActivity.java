@@ -34,7 +34,18 @@ import okhttp3.Response;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 
-//vle
+//  authors: vv feat vle
+//
+//           ___  _ _                   _
+//          / _ \| | |                 (_)
+//         / /_\ \ | |_ ___  __ _ _   _ _ ____
+//         |  _  | | __/ _ \/ _` | | | | |_  /
+//         | | | | | ||  __/ (_| | |_| | |/ /
+//         \_| |_/_|\__\___|\__, |\__,_|_/___|
+//                             | |
+//                             |_|
+//         The intelligent quiz on sustainable development.
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -393,7 +404,7 @@ public class MainActivity extends AppCompatActivity {
         System.out.println(str);
     }
 
-    //==============================================================================================
+
     //    ______ _           _
     //    |  _  (_)         | |
     //    | | | |_ ___ _ __ | | __ _ _   _
