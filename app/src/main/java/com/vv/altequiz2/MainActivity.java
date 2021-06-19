@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                 nextQuestionId = (int) question.getId();
                 handleDisplayWhenNotOver();
             }
-            logAltequiz("VV 700 count quest:" + questionsTrack.size() + ", perfect:" + isAnswersAllGood + ", quest Id:" + nextQuestionId + " karma:" + question.getKarma());
+            logAltequiz("VV 700 quest Id:" + nextQuestionId + ", count quest:" + questionsTrack.size() + ", perfect:" + isAnswersAllGood + " karma:" + question.getKarma());
             logAltequiz(result);
             enableButtons();
         }
@@ -188,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             }
             RequestBody body = RequestBody.create(JSON, questionJSON);
             String url = URL_POST;
-            logAltequiz("VV 3333 url:" + url + " for current question id:" + nextQuestionId);
+            logAltequiz("VV 3333 POST: " + url + " for current question id:" + nextQuestionId);
             Request request = new Request.Builder()
                     .url(url)
                     .post(body)
@@ -212,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
             OkHttpClient client = initRequest();
             logAltequiz("VV 100 getting first question.");
             String url = FIRST_URL_GET;
-            logAltequiz("VV 3331 url:" + url);
+            logAltequiz("VV 3331 GET: " + url);
             Request request = new Request.Builder()
                     .url(url)
                     .build();
@@ -236,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
         private String subGetQuestionJSON() {
             OkHttpClient client = initRequest();
             String url = URL_GET + nextQuestionId;
-            logAltequiz("VV 3332 url:" + url);
+            logAltequiz("VV 3332 GET: " + url);
             Request request = new Request.Builder()
                     .url(url)
                     .build();
@@ -302,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
         private String getDecile(String id) {
             OkHttpClient client = initRequest();
             String url = DECILE_URL_GET + id;
-            logAltequiz("VV 3334 url:" + url);
+            logAltequiz("VV 3334 GET: " + url);
 
             Request request = new Request.Builder()
                     .url(url)
