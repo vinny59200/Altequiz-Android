@@ -19,13 +19,9 @@ import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -41,10 +37,15 @@ import okhttp3.RequestBody;
 
 public class MainActivity extends AppCompatActivity {
 
+
+    public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
+    public static final String URL_GET = "http://129.213.40.35:5000/question/";
+    public static final String URL_POST = "http://129.213.40.35:5000/send/";
+    public static final String DECILE_URL_GET = "http://129.213.40.35:5000/decile/";
+
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
     private static ProgressBar progressBar;
-    private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 
     Question question;
     Set<Question> questionsTrack = new HashSet<>();
@@ -122,9 +123,6 @@ public class MainActivity extends AppCompatActivity {
 
     private class Task extends AsyncTask<Void, Void, String> {
 
-        public static final String URL_POST = "http://129.213.40.35:5000/send/";
-        public static final String URL_GET = "http://129.213.40.35:5000/question/";
-        public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
         String answerFromFront = null;
 
         public Task(String answer) {
@@ -138,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(20);
 
-            String nextQuestionJSON = getQuestionJSON();
+            String nextQuestionJSON = getQuestionJSON(false);
 
             return nextQuestionJSON;
         }
@@ -162,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                 nextQuestionId = (int) question.getId();
                 handleDisplayWhenNotOver();
             }
-            logAltequiz("VV 852 count quest:" + questionsTrack.size() + ", perfect:" + isAnswersAllGood + ", quest Id:" + nextQuestionId + " karma:" + question.getKarma());
+            logAltequiz("VV 700 count quest:" + questionsTrack.size() + ", perfect:" + isAnswersAllGood + ", quest Id:" + nextQuestionId + " karma:" + question.getKarma());
             logAltequiz(result);
             enableButtons();
         }
@@ -178,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
         //
 
         @Nullable
-        private String getQuestionJSON() {
+        private String getQuestionJSON(boolean isRetrying) {
             OkHttpClient client = initRequest();
             String questionJSON = null;
             while (questionJSON == null) {
@@ -190,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             }
             RequestBody body = RequestBody.create(JSON, questionJSON);
             String url = URL_POST;
-            logAltequiz("VV 333 url:" + url + " for current question id:" + nextQuestionId);
+            logAltequiz("VV 3333 url:" + url + " for current question id:" + nextQuestionId);
             Request request = new Request.Builder()
                     .url(url)
                     .post(body)
@@ -202,10 +200,9 @@ public class MainActivity extends AppCompatActivity {
                 nextQuestionJSON = response.body().string();
             } catch (Exception e) {
                 logAltequiz("VV 6663 Retry main POST sending question request call for question id:" + nextQuestionId);
-                return getQuestionJSON();
             }
             if (nextQuestionJSON == null) {
-                return getQuestionJSON();
+                return getQuestionJSON(true);
             } else {
                 return nextQuestionJSON;
             }
@@ -213,9 +210,9 @@ public class MainActivity extends AppCompatActivity {
 
         private String subGetFirstQuestionJSON() {
             OkHttpClient client = initRequest();
-            logAltequiz("VV 883 getting first question.");
+            logAltequiz("VV 100 getting first question.");
             String url = FIRST_URL_GET;
-            logAltequiz("VV 33 url:" + url);
+            logAltequiz("VV 3331 url:" + url);
             Request request = new Request.Builder()
                     .url(url)
                     .build();
@@ -239,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
         private String subGetQuestionJSON() {
             OkHttpClient client = initRequest();
             String url = URL_GET + nextQuestionId;
-            logAltequiz("VV 333 url:" + url);
+            logAltequiz("VV 3332 url:" + url);
             Request request = new Request.Builder()
                     .url(url)
                     .build();
@@ -254,7 +251,6 @@ public class MainActivity extends AppCompatActivity {
                 logAltequiz("VV 6662 retry GET question JSON request call for question id:" + nextQuestionId);
                 return subGetQuestionJSON();
             } else {
-                logAltequiz("VV 556 " + questionJson);
                 Question question = new Gson().fromJson(questionJson, Question.class);
                 isAnswersAllGood = isAnswersAllGood(question.getAnswer(), answerFromFront);
                 question.setAnswer(answerFromFront);
@@ -276,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
 
     private class DecileTask extends AsyncTask<Void, Void, String> {
 
-        public static final String DECILE_URL_GET = "http://129.213.40.35:5000/decile/";
         private String finalQuestionId = "2";
 
         public DecileTask(String idQuestionFinale) {
@@ -287,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(Void... params) {
             String decile = getDecile(finalQuestionId);
-            logAltequiz("VV 223 doing decile task, decile=" + decile);
+            logAltequiz("VV 800 doing decile task, decile=" + decile);
             return decile;
         }
 
@@ -307,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
         private String getDecile(String id) {
             OkHttpClient client = initRequest();
             String url = DECILE_URL_GET + id;
-            logAltequiz("VV 333 url:" + url);
+            logAltequiz("VV 3334 url:" + url);
 
             Request request = new Request.Builder()
                     .url(url)
@@ -332,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
     //                                |___/
 
     private boolean isOver() {
-        return (!isAnswersAllGood && questionsTrack.size() > 2) || isAllDOne();
+        return (!isAnswersAllGood && questionsTrack.size() > 9) || isAllDOne();
     }
 
     private void launchDecileTask(int questionIdForDecile) {
@@ -342,6 +337,7 @@ public class MainActivity extends AppCompatActivity {
     private int getQuestionIdForDecile() {
         int questionIdForDecile = 0;
         Question finalKarmaQuestion = questionsTrack.stream().reduce((prev, next) -> next).orElse(null);
+        //TODO check if the id is right
         questionIdForDecile = (int) finalKarmaQuestion.getId();
         return questionIdForDecile;
     }
