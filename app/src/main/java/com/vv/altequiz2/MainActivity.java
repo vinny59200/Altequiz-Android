@@ -26,8 +26,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-
-import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -58,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
     public static final String BLANK_NOT_PROCESSED = "BLANK_NOT_PROCESSED";
-    private static ProgressBar progressBar;
+    private ProgressBar progressBar;
 
     Question question;
     Set<Question> questionsStack = new HashSet<>();
@@ -88,17 +86,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        answerATextView = (TextView) findViewById(R.id.atv);
-        answerBTextView = (TextView) findViewById(R.id.btv);
-        answerCTextView = (TextView) findViewById(R.id.ctv);
-        answerDTextView = (TextView) findViewById(R.id.dtv);
-        answerETextView = (TextView) findViewById(R.id.etv);
-        answerFTextView = (TextView) findViewById(R.id.ftv);
-        imageView = (ImageView) findViewById(R.id.image);
+        answerATextView = findViewById(R.id.atv);
+        answerBTextView = findViewById(R.id.btv);
+        answerCTextView = findViewById(R.id.ctv);
+        answerDTextView = findViewById(R.id.dtv);
+        answerETextView = findViewById(R.id.etv);
+        answerFTextView = findViewById(R.id.ftv);
+        imageView = findViewById(R.id.image);
 
-        tipTextView = (TextView) findViewById(R.id.answertv);
-        progressBar = (ProgressBar) findViewById(R.id.bar);
-        questionTextView = (TextView) findViewById(R.id.textview);
+        tipTextView = findViewById(R.id.answertv);
+        progressBar = findViewById(R.id.bar);
+        questionTextView = findViewById(R.id.textview);
 
         declareReplaybtn();
 
@@ -136,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
 
     private class Task extends AsyncTask<Void, Void, String> {
 
-        String userAnswer = null;
+        String userAnswer;
 
         public Task(String answer) {
             super();
@@ -149,9 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(20);
 
-            String json = getQuestionJSON(false);
-
-            return json;
+            return getQuestionJSON();
         }
 
         @Override
@@ -164,12 +160,11 @@ public class MainActivity extends AppCompatActivity {
             aButton.setVisibility(View.VISIBLE);
 
             if (isOver()) {
-                int lastId = (int) question.getId();
                 handleDisplayWhenOver();
-                launchDecileTask(lastId);
+                launchDecileTask(question.getId());
             } else {
                 question = new Gson().fromJson(result, Question.class);
-                nextId = (int) question.getId();
+                nextId = question.getId();
                 handleDisplayWhenNotOver();
             }
             logAltequiz("VV 700 quest Id:" + nextId + ", count quest:" + questionsStack.size() +
@@ -189,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         //
 
         @Nullable
-        private String getQuestionJSON(boolean isRetrying) {
+        private String getQuestionJSON() {
             OkHttpClient clt = initRequest();
             String json = null;
             while (json == null) {
@@ -200,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (!questionsStack.isEmpty()) {
-                RequestBody body = RequestBody.create(JSON, json);
+                RequestBody body = RequestBody.create(json, JSON);
                 String url = URL_POST;
                 logAltequiz("VV 3333 POST: " + url + " for current question id:" + nextId);
                 Request req = new Request.Builder()
@@ -217,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
                             "for question id:" + nextId);
                 }
                 if (json == null) {
-                    return getQuestionJSON(true);
+                    return getQuestionJSON();
                 } else {
                     return json;
                 }
@@ -237,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
             String json = null;
             try (Response resp = clt.newCall(req).execute()) {
                 updateProgressBar(60);
-                nextId = Integer.valueOf(resp.body().string()).intValue();
+                nextId = Integer.valueOf(resp.body().string());
                 logAltequiz("VV 100 first question id=" + nextId);
                 json = subGetQuestionJSON();
                 if (nextId == 0) throw new Exception();
@@ -273,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
                 Question q = new Gson().fromJson(json, Question.class);
                 isAnswersAllGood = isAnswersAllGood(q.getAnswer(), userAnswer);
                 q.setAnswer(userAnswer);
-                if(!BLANK_NOT_PROCESSED.equals(userAnswer)) questionsStack.add(q);
+                if (!BLANK_NOT_PROCESSED.equals(userAnswer)) questionsStack.add(q);
                 json = new Gson().toJson(q, Question.class);
                 return json;
             }
@@ -291,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
 
     private class DecileTask extends AsyncTask<Void, Void, String> {
 
-        private String id = "2";
+        private final String id;
 
         public DecileTask(String lastId) {
             super();
@@ -307,8 +302,8 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String decile) {
             try {
-                questionTextView.setText("Vous êtes meilleur(e) que " + calculateScore(decile)
-                        + "% des joueurs.");
+                questionTextView.setText(String.format("Vous êtes meilleur(e) que %s des joueurs.",
+                        calculateScore(decile)));
             } catch (Exception e) {
                 logAltequiz("Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
@@ -372,9 +367,9 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isAnswersAllGood(String fromDB, String fromUser) {
         logAltequiz("VV 226 answers: " + fromDB + " | " + fromUser
-                +" (latter one from the user)");
-        if(BLANK_NOT_PROCESSED.equals(fromUser)){
-             return true;
+                + " (latter one from the user)");
+        if (BLANK_NOT_PROCESSED.equals(fromUser)) {
+            return true;
         }
         return isAnswersAllGood && fromDB.trim().equals(fromUser.trim());
     }
@@ -389,13 +384,10 @@ public class MainActivity extends AppCompatActivity {
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
-                .addNetworkInterceptor(new Interceptor() {
-                    @Override
-                    public Response intercept(Chain chain) throws IOException {
-                        Request request = chain.request().newBuilder()
-                                .addHeader("Connection", "close").build();
-                        return chain.proceed(request);
-                    }
+                .addNetworkInterceptor(chain -> {
+                    Request request = chain.request().newBuilder()
+                            .addHeader("Connection", "close").build();
+                    return chain.proceed(request);
                 })
                 .build();
     }
@@ -420,13 +412,13 @@ public class MainActivity extends AppCompatActivity {
         updateChoicesTextViews();
         tipTextView.setText(question.getAnswer());
         displayCDEFButtons();
-        if (Integer.valueOf(question.getChoices_count()) == 2) {
+        if (question.getChoices_count() == 2) {
             hideCDEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 3) {
+        } else if (question.getChoices_count() == 3) {
             hideDEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 4) {
+        } else if (question.getChoices_count() == 4) {
             hideEFButtons();
-        } else if (Integer.valueOf(question.getChoices_count()) == 5) {
+        } else if (question.getChoices_count() == 5) {
             fButton.setVisibility(View.INVISIBLE);
         }
     }
@@ -484,94 +476,68 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void declareReplaybtn() {
-        replayButton = (Button) findViewById(R.id.replaybtn);
+        replayButton = findViewById(R.id.replaybtn);
         replayButton.setVisibility(View.INVISIBLE);
-        replayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-                startActivity(getIntent());
-            }
+        replayButton.setOnClickListener(view -> {
+            finish();
+            startActivity(getIntent());
         });
     }
 
     private void declareLinkbtn() {
-        blogButton = (Button) findViewById(R.id.blogbtn);
+        blogButton = findViewById(R.id.blogbtn);
         blogButton.setVisibility(View.GONE);
-        blogButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
-                startActivity(browserIntent);
-            }
-        });
+        blogButton.setOnClickListener(view -> {
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://worldcaretriviaapp.mystrikingly.com/"));
+                    startActivity(browserIntent);
+                }
+        );
     }
 
     private void declareFbtn() {
-        fButton = (Button) findViewById(R.id.fbtn);
+        fButton = findViewById(R.id.fbtn);
         fButton.setVisibility(View.INVISIBLE);
-        fButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("F");
-            }
-        });
+        fButton.setOnClickListener(view ->
+                launchTaskWithAnswer("F"));
     }
 
     private void declareEbtn() {
-        eButton = (Button) findViewById(R.id.ebtn);
+        eButton = findViewById(R.id.ebtn);
         eButton.setVisibility(View.INVISIBLE);
-        eButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("E");
-            }
-        });
+        eButton.setOnClickListener(view ->
+                launchTaskWithAnswer("E")
+        );
     }
 
     private void declareDbtn() {
-        dButton = (Button) findViewById(R.id.dbtn);
+        dButton = findViewById(R.id.dbtn);
         dButton.setVisibility(View.INVISIBLE);
-        dButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("D");
-            }
-        });
+        dButton.setOnClickListener(view ->
+                launchTaskWithAnswer("D"));
     }
 
     private void declareCbtn() {
-        cButton = (Button) findViewById(R.id.cbtn);
+        cButton = findViewById(R.id.cbtn);
         cButton.setVisibility(View.INVISIBLE);
-        cButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("C");
-            }
-        });
+        cButton.setOnClickListener(view ->
+                launchTaskWithAnswer("C"));
     }
 
     private void declareBbtn() {
-        bButton = (Button) findViewById(R.id.bbtn);
+        bButton = findViewById(R.id.bbtn);
         bButton.setVisibility(View.INVISIBLE);
-        bButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("B");
-            }
-        });
+        bButton.setOnClickListener(view ->
+                launchTaskWithAnswer("B")
+        );
     }
 
     private void declareAbtn() {
-        aButton = (Button) findViewById(R.id.abtn);
+        aButton = findViewById(R.id.abtn);
         aButton.setVisibility(View.INVISIBLE);
-        aButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                launchTaskWithAnswer("A");
-            }
-        });
+        aButton.setOnClickListener(view ->
+                launchTaskWithAnswer("A")
+        );
     }
 
     private void hideEFButtons() {
