@@ -48,10 +48,10 @@ import okhttp3.RequestBody;
 public class MainActivity extends AppCompatActivity {
 
 
-    public static final String FIRST_URL_GET = "http://129.213.40.35:5000/first/";
-    public static final String URL_GET = "http://129.213.40.35:5000/question/";
-    public static final String URL_POST = "http://129.213.40.35:5000/send/";
-    public static final String DECILE_URL_GET = "http://129.213.40.35:5000/decile/";
+    public static final String FIRST_URL_GET = "http://129.213.40.35:5000/api/v1/first/";
+    public static final String URL_GET = "http://129.213.40.35:5000/api/v1/question/";
+    public static final String URL_POST = "http://129.213.40.35:5000/api/v1/send/";
+    public static final String DECILE_URL_GET = "http://129.213.40.35:5000/api/v1/decile/";
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
