@@ -346,16 +346,11 @@ public class MainActivity extends AppCompatActivity {
     //                                |___/
 
     private boolean isOver() {
-        return (!isAnswersAllGood && questionsStack.size() > 9) || isAllDOne();
+        return (!isAnswersAllGood && questionsStack.size() > 9) || questionsStack.size()>24;
     }
 
     private void launchDecileTask(int questionIdForDecile) {
         new DecileTask("" + questionIdForDecile).execute();
-    }
-
-    private boolean isAllDOne() {
-        //TODO code smell=>change it to isMaxScoreReached
-        return questionsStack.size() == 170;
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromUser) {
