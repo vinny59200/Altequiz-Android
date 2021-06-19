@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
             aButton.setVisibility(View.VISIBLE);
 
             if (isOver()) {
-                int questionIdForDecile = getQuestionIdForDecile();
+                int questionIdForDecile = (int) question.getId();
                 handleDisplayWhenOver();
                 launchDecileTask(questionIdForDecile);
             } else {
@@ -194,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
                     .post(body)
                     .build();
             updateProgressBar(80);
-            String nextQuestionJSON = "";
+            String nextQuestionJSON = null;
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
@@ -296,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private int calculateScore(String decile) {
-            return Integer.parseInt(decile) * 10;
+            return 100 - Integer.parseInt(decile) * 10;
         }
 
         private String getDecile(String id) {
@@ -334,24 +334,16 @@ public class MainActivity extends AppCompatActivity {
         new DecileTask("" + questionIdForDecile).execute();
     }
 
-    private int getQuestionIdForDecile() {
-        int questionIdForDecile = 0;
-        Question finalKarmaQuestion = questionsTrack.stream().reduce((prev, next) -> next).orElse(null);
-        //TODO check if the id is right
-        questionIdForDecile = (int) finalKarmaQuestion.getId();
-        return questionIdForDecile;
-    }
-
     private boolean isAllDOne() {
         //TODO code smell=>change it to isMaxScoreReached
         return questionsTrack.size() == 170;
     }
 
-    private boolean isAnswersAllGood(String fromDB, String fromFront) {
+    private boolean isAnswersAllGood(String fromDB, String fromUser) {
         if (isAnswersAllGood && questionsTrack.isEmpty()) {
             return true;//TODO code smell
         } else {
-            return fromDB.equals(fromFront);
+            return isAnswersAllGood && fromDB.trim().equals(fromUser.trim());
         }
     }
 
