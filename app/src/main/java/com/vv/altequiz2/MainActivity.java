@@ -6,7 +6,6 @@ import android.os.AsyncTask;
 
 import android.os.Bundle;
 
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -20,10 +19,15 @@ import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 import okhttp3.Interceptor;
@@ -34,14 +38,16 @@ import okhttp3.MediaType;
 import okhttp3.RequestBody;
 
 //vle
+
 public class MainActivity extends AppCompatActivity {
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
     private static ProgressBar progressBar;
+    private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 
     Question question;
-    List<Question> questionsTrack = new ArrayList<>();
+    Set<Question> questionsTrack = new HashSet<>();
     boolean isAnswersAllGood = true;
     int nextQuestionId;
 
@@ -132,15 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
             updateProgressBar(20);
 
-            OkHttpClient client = initRequest();
-
-            Request request = getQuestionPOSTRequest();
-
-            updateProgressBar(80);
-
-            String nextQuestionJSON = getNextQuestionFromPOSTRequest(client, request);
-
-            System.out.println("vv 987  " + nextQuestionJSON);
+            String nextQuestionJSON = getQuestionJSON();
 
             return nextQuestionJSON;
         }
@@ -164,7 +162,8 @@ public class MainActivity extends AppCompatActivity {
                 nextQuestionId = (int) question.getId();
                 handleDisplayWhenNotOver();
             }
-
+            logAltequiz("VV 852 count quest:" + questionsTrack.size() + ", perfect:" + isAnswersAllGood + ", quest Id:" + nextQuestionId + " karma:" + question.getKarma());
+            logAltequiz(result);
             enableButtons();
         }
 
@@ -179,57 +178,46 @@ public class MainActivity extends AppCompatActivity {
         //
 
         @Nullable
-        private String getNextQuestionFromPOSTRequest(OkHttpClient client, Request request) {
+        private String getQuestionJSON() {
+            OkHttpClient client = initRequest();
+            String questionJSON = null;
+            while (questionJSON == null) {
+                if (questionsTrack.isEmpty()) {
+                    questionJSON = subGetFirstQuestionJSON();
+                } else {
+                    questionJSON = subGetQuestionJSON();
+                }
+            }
+            RequestBody body = RequestBody.create(JSON, questionJSON);
+            String url = URL_POST;
+            logAltequiz("VV 333 url:" + url + " for current question id:" + nextQuestionId);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .build();
+            updateProgressBar(80);
             String nextQuestionJSON = "";
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(100);
                 nextQuestionJSON = response.body().string();
             } catch (Exception e) {
-                System.out.println("vv 987 retry getNextQuestionFromPOSTRequest");
-                logAltequiz(e, "error while getting question JSON post request");
-                return getNextQuestionFromPOSTRequest(client, request);
-
+                logAltequiz("VV 6663 Retry main POST sending question request call for question id:" + nextQuestionId);
+                return getQuestionJSON();
             }
-            return nextQuestionJSON;
-        }
-
-        @NotNull
-        private Request getQuestionPOSTRequest() {
-            String questionJSON = getQuestionJSON();
-            RequestBody body = RequestBody.create(JSON, questionJSON);
-            Request request = new Request.Builder()
-                    .url(URL_POST)
-                    .post(body)
-                    .build();
-            return request;
-        }
-
-        @NotNull
-        private String getQuestionJSON() {
-            String questionJSON = null;
-            questionJSON = handleFirstOrNoJSON();
-            while (questionJSON == null) {
-                System.out.println("VV 116 retry because JSON badly shaped");
-                questionJSON = handleFirstOrNoJSON();
-            }
-            return questionJSON;
-        }
-
-        private String handleFirstOrNoJSON() {
-            String questionJSON;
-            if (questionsTrack.isEmpty()) {
-                questionJSON = subGetFirstQuestionJSON();
+            if (nextQuestionJSON == null) {
+                return getQuestionJSON();
             } else {
-                questionJSON = subGetQuestionJSON();
+                return nextQuestionJSON;
             }
-            return questionJSON;
         }
 
         private String subGetFirstQuestionJSON() {
             OkHttpClient client = initRequest();
-            System.out.println("VV 883 getting next first question");
+            logAltequiz("VV 883 getting first question.");
+            String url = FIRST_URL_GET;
+            logAltequiz("VV 33 url:" + url);
             Request request = new Request.Builder()
-                    .url(FIRST_URL_GET)
+                    .url(url)
                     .build();
             updateProgressBar(40);
             String questionJson = null;
@@ -237,42 +225,43 @@ public class MainActivity extends AppCompatActivity {
                 updateProgressBar(60);
                 nextQuestionId = Integer.valueOf(response.body().string()).intValue();
                 questionJson = subGetQuestionJSON();
+                if (nextQuestionId == 0) throw new Exception();
             } catch (Exception e) {
-                e.printStackTrace();
-                logAltequiz(e, "error in the sub process of getting first JSON question");
             }
-            return questionJson;
+            if (questionJson == null) {
+                logAltequiz("VV 6661 retry GET first question JSON request call");
+                return subGetFirstQuestionJSON();
+            } else {
+                return questionJson;
+            }
         }
 
         private String subGetQuestionJSON() {
             OkHttpClient client = initRequest();
+            String url = URL_GET + nextQuestionId;
+            logAltequiz("VV 333 url:" + url);
             Request request = new Request.Builder()
-                    .url(URL_GET + nextQuestionId)
+                    .url(url)
                     .build();
             updateProgressBar(40);
             String questionJson = null;
             try (Response response = client.newCall(request).execute()) {
                 updateProgressBar(60);
                 questionJson = response.body().string();
-                questionJson = updateQuestionJSONWithAnswerFromFront(questionJson);
             } catch (Exception e) {
-                e.printStackTrace();
-                logAltequiz(e, "error in the sub process of getting JSON question");
             }
-            return questionJson;
-        }
-
-        private String updateQuestionJSONWithAnswerFromFront(String questionJson) {
-            try {
+            if (questionJson == null) {
+                logAltequiz("VV 6662 retry GET question JSON request call for question id:" + nextQuestionId);
+                return subGetQuestionJSON();
+            } else {
+                logAltequiz("VV 556 " + questionJson);
                 Question question = new Gson().fromJson(questionJson, Question.class);
                 isAnswersAllGood = isAnswersAllGood(question.getAnswer(), answerFromFront);
                 question.setAnswer(answerFromFront);
                 questionsTrack.add(question);
                 questionJson = new Gson().toJson(question, Question.class);
-            } catch (Exception e) {
-                logAltequiz(e, "error while modifying question JSON with answer from the front");
+                return questionJson;
             }
-            return questionJson;
         }
     }
 
@@ -298,16 +287,15 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(Void... params) {
             String decile = getDecile(finalQuestionId);
-            System.out.println("VV 223 doing decile task, decile=" + decile);
+            logAltequiz("VV 223 doing decile task, decile=" + decile);
             return decile;
         }
 
         protected void onPostExecute(String decile) {
-            System.out.println("post ex dec task, decile:" + decile);
             try {
                 questionTextView.setText("Vous etes meilleur que " + calculateScore(decile) + "% des joueurs.");
             } catch (Exception e) {
-                logAltequiz(e, "Error in rank result display");
+                logAltequiz("Error in rank result display");
                 questionTextView.setText("Calcul du resultat KO");
             }
         }
@@ -318,16 +306,18 @@ public class MainActivity extends AppCompatActivity {
 
         private String getDecile(String id) {
             OkHttpClient client = initRequest();
+            String url = DECILE_URL_GET + id;
+            logAltequiz("VV 333 url:" + url);
 
             Request request = new Request.Builder()
-                    .url(DECILE_URL_GET + id)
+                    .url(url)
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
                 String result = response.body().string();
                 return result.substring(0, result.length() - 2);
             } catch (IOException e) {
-                logAltequiz(e, "decileKO");
+                logAltequiz("VV 6664 Retry GET decile request call for question id:" + id);
                 return getDecile(id);
             }
         }
@@ -351,25 +341,24 @@ public class MainActivity extends AppCompatActivity {
 
     private int getQuestionIdForDecile() {
         int questionIdForDecile = 0;
-        Question finalKarmaQuestion = questionsTrack.get(questionsTrack.size() - 1);
+        Question finalKarmaQuestion = questionsTrack.stream().reduce((prev, next) -> next).orElse(null);
         questionIdForDecile = (int) finalKarmaQuestion.getId();
         return questionIdForDecile;
     }
 
     private boolean isAllDOne() {
-        //TODO change it to isMaxScoreReached
+        //TODO code smell=>change it to isMaxScoreReached
         return questionsTrack.size() == 170;
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromFront) {
         if (isAnswersAllGood && questionsTrack.isEmpty()) {
-            System.out.println("VV 688 case true for first try");
-            return true;
+            return true;//TODO code smell
         } else {
-            System.out.println("VV 688 isAnswersAllGood: db=" + fromDB + " | front=" + fromFront);
             return fromDB.equals(fromFront);
         }
     }
+
     private void launchTaskWithAnswer(String answer) {
         new Task(answer).execute();
     }
@@ -378,6 +367,9 @@ public class MainActivity extends AppCompatActivity {
     @NotNull
     private OkHttpClient initRequest() {
         return new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
                 .addNetworkInterceptor(new Interceptor() {
                     @Override
                     public Response intercept(Chain chain) throws IOException {
@@ -388,8 +380,8 @@ public class MainActivity extends AppCompatActivity {
                 .build();
     }
 
-    private void logAltequiz(Exception e, String str) {
-        Log.e("altequiz", str + e.getMessage());
+    private void logAltequiz(String str) {
+        System.out.println(str);
     }
 
 //
@@ -404,8 +396,9 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void handleDisplayWhenNotOver() {
+        questionTextView.setText(question.getQuestion());
+        updateChoicesTextViews();
         tipTextView.setText(question.getAnswer());
-        updateQuestionTextView();
         displayCDEFButtons();
         if (Integer.valueOf(question.getChoices_count()) == 2) {
             hideCDEFButtons();
@@ -418,35 +411,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateQuestionTextView() {
-        try {
-            int cpt = 1;
-            for (String choice : question.getChoices_content().split(" ### ")) {
-                switch (cpt) {
-                    case 1:
-                        answerATextView.setText(choice.trim().substring(2));
-                        break;
-                    case 2:
-                        answerBTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 3:
-                        answerCTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 4:
-                        answerDTextView.setText(choice.trim().substring(2));
-                        break;
-                    case 5:
-                        answerETextView.setText(choice.trim().substring(2));
-                        break;
-                    case 6:
-                        answerFTextView.setText(choice.trim().substring(2));
-                        break;
-                }
-                cpt++;
+    private void updateChoicesTextViews() {
+        int cpt = 1;
+        for (String choice : question.getChoices_content().split(" ### ")) {
+            switch (cpt) {
+                case 1:
+                    answerATextView.setText(choice.trim().substring(2));
+                    break;
+                case 2:
+                    answerBTextView.setText(choice.trim().substring(2));
+                    break;
+                case 3:
+                    answerCTextView.setText(choice.trim().substring(2));
+                    break;
+                case 4:
+                    answerDTextView.setText(choice.trim().substring(2));
+                    break;
+                case 5:
+                    answerETextView.setText(choice.trim().substring(2));
+                    break;
+                case 6:
+                    answerFTextView.setText(choice.trim().substring(2));
+                    break;
             }
-            questionTextView.setText(question.getQuestion());
-        } catch (Exception e) {
-            logAltequiz(e, "error while setting the question text view");
+            cpt++;
         }
     }
 
@@ -470,7 +458,6 @@ public class MainActivity extends AppCompatActivity {
                 "Découvrez les réponses dans le blog!",
                 Toast.LENGTH_SHORT).show();
     }
-
 
     private void updateProgressBar(int step) {
         progressBar.setProgress(step);
@@ -623,7 +610,6 @@ public class MainActivity extends AppCompatActivity {
         eButton.setEnabled(false);
         fButton.setEnabled(false);
     }
-
 
 
     //    _____                              _____ _

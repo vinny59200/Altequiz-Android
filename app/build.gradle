@@ -10,8 +10,8 @@ android {
         applicationId "com.vv.altequiz2"
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 21
-        versionName "21.0"
+        versionCode 22
+        versionName "22.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +35,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
     implementation 'com.google.code.gson:gson:2.8.6'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
