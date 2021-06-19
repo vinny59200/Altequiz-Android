@@ -86,32 +86,25 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        questionTextView = findViewById(R.id.textview);
         answerATextView = findViewById(R.id.atv);
         answerBTextView = findViewById(R.id.btv);
         answerCTextView = findViewById(R.id.ctv);
         answerDTextView = findViewById(R.id.dtv);
         answerETextView = findViewById(R.id.etv);
         answerFTextView = findViewById(R.id.ftv);
-        imageView = findViewById(R.id.image);
 
-        tipTextView = findViewById(R.id.answertv);
+        imageView = findViewById(R.id.image);
         progressBar = findViewById(R.id.bar);
-        questionTextView = findViewById(R.id.textview);
+        tipTextView = findViewById(R.id.answertv);
 
         declareReplaybtn();
-
         declareLinkbtn();
-
         declareAbtn();
-
         declareBbtn();
-
         declareCbtn();
-
         declareDbtn();
-
         declareEbtn();
-
         declareFbtn();
 
         launchTaskWithAnswer(BLANK_NOT_PROCESSED);
