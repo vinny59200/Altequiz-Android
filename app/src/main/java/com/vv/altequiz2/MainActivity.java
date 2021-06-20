@@ -51,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
     public static final String FIRST_URL_GET = "http://129.213.40.35:5000/api/v1/first/";
     public static final String URL_GET = "http://129.213.40.35:5000/api/v1/question/";
     public static final String URL_POST = "http://129.213.40.35:5000/api/v1/send/";
-    public static final String DECILE_URL_GET = "http://129.213.40.35:5000/api/v1/decile/";
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
@@ -62,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     Set<Question> questionsStack = new HashSet<>();
     boolean isAnswersAllGood = true;
     int nextId;
+    int score = 5;
 
     TextView questionTextView;
     TextView tipTextView;
@@ -154,7 +154,8 @@ public class MainActivity extends AppCompatActivity {
 
             if (isOver()) {
                 handleDisplayWhenOver();
-                launchDecileTask(question.getId());
+                questionTextView.setText(String.format("Votre score est de%s%%.",
+                        calculateStars() * 10));
             } else {
                 question = new Gson().fromJson(result, Question.class);
                 nextId = question.getId();
@@ -269,73 +270,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //==============================================================================================
-    //   ______          _ _              _____         _
-    //   |  _  \        (_) |            |_   _|       | |
-    //   | | | |___  ___ _| | ___          | | __ _ ___| | __
-    //   | | | / _ \/ __| | |/ _ \         | |/ _` / __| |/ /
-    //   | |/ /  __/ (__| | |  __/         | | (_| \__ \   <
-    //   |___/ \___|\___|_|_|\___|         \_/\__,_|___/_|\_\
-    //
-
-    private class DecileTask extends AsyncTask<Void, Void, String> {
-
-        private final String id;
-
-        public DecileTask(String lastId) {
-            super();
-            id = lastId;
-        }
-
-        @Override
-        protected String doInBackground(Void... params) {
-            String decile = getDecile(id);
-            logAltequiz("VV 800 doing decile task, decile=" + decile);
-            return decile;
-        }
-
-        protected void onPostExecute(String decile) {
-            try {
-                questionTextView.setText(String.format("Vous êtes meilleur(e) que %s%% des joueurs.",
-                        calculateScore(decile)));
-            } catch (Exception e) {
-                logAltequiz("Error in rank result display");
-                questionTextView.setText("Calcul du resultat KO");
-            }
-        }
-
-        //        _____         _           ______     _            _
-        //       |_   _|       | |          | ___ \   (_)          | |
-        //         | | __ _ ___| | __       | |_/ / __ ___   ____ _| |_ ___  ___
-        //         | |/ _` / __| |/ /       |  __/ '__| \ \ / / _` | __/ _ \/ __|
-        //         | | (_| \__ \   <        | |  | |  | |\ V / (_| | ||  __/\__ \
-        //         \_/\__,_|___/_|\_\       \_|  |_|  |_| \_/ \__,_|\__\___||___/
-        //
-        //
-
-        private int calculateScore(String decile) {
-            return 100 - Integer.parseInt(decile) * 10;
-        }
-
-        private String getDecile(String id) {
-            OkHttpClient clt = initRequest();
-            String url = DECILE_URL_GET + id;
-            logAltequiz("VV 3334 GET: " + url);
-
-            Request req = new Request.Builder()
-                    .url(url)
-                    .build();
-
-            try (Response resp = clt.newCall(req).execute()) {
-                String decile = resp.body().string();
-                return decile.substring(0, decile.length() - 2);
-            } catch (IOException e) {
-                logAltequiz("VV 6664 Retry GET decile request call for question id:" + id);
-                return getDecile(id);
-            }
-        }
-    }
-
-    //==============================================================================================
     //    ___       _   _       _ _                ______     _            _
     //   / _ \     | | (_)     (_) |               | ___ \   (_)          | |
     //  / /_\ \ ___| |_ ___   ___| |_ _   _        | |_/ / __ ___   ____ _| |_ ___  ___
@@ -346,11 +280,7 @@ public class MainActivity extends AppCompatActivity {
     //                                |___/
 
     private boolean isOver() {
-        return (!isAnswersAllGood && questionsStack.size() > 9) || questionsStack.size()>24;
-    }
-
-    private void launchDecileTask(int questionIdForDecile) {
-        new DecileTask("" + questionIdForDecile).execute();
+        return (!isAnswersAllGood && questionsStack.size() > 9) || questionsStack.size() > 24;
     }
 
     private boolean isAnswersAllGood(String fromDB, String fromUser) {
@@ -358,8 +288,25 @@ public class MainActivity extends AppCompatActivity {
                 + " (latter one from the user)");
         if (BLANK_NOT_PROCESSED.equals(fromUser)) {
             return true;
+        } else {
+            boolean same = fromDB.trim().equals(fromUser.trim());
+            if (same) {
+                this.score = this.score + 1;
+            } else {
+                this.score = this.score - 1;
+            }
+            logAltequiz("vv 378: score" + score);
+            return isAnswersAllGood && same;
         }
-        return isAnswersAllGood && fromDB.trim().equals(fromUser.trim());
+
+    }
+
+    private int calculateStars() {
+        int result = 5;
+        if (this.score > 9) result = 10;
+        else
+            result = this.score % 10;
+        return result;
     }
 
     private void launchTaskWithAnswer(String answer) {
