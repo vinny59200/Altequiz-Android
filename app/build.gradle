@@ -10,8 +10,8 @@ android {
         applicationId "com.vv.altequiz2"
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 34
-        versionName "34.0"
+        versionCode 35
+        versionName "35.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

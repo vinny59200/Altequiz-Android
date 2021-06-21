@@ -154,8 +154,8 @@ public class MainActivity extends AppCompatActivity {
 
             if (isOver()) {
                 handleDisplayWhenOver();
-                questionTextView.setText(String.format("Votre score est de%s%%.",
-                        calculateStars() * 10));
+                questionTextView.setText(String.format("Votre score est de %s points.",
+                        calculateScore()));
             } else {
                 question = new Gson().fromJson(result, Question.class);
                 nextId = question.getId();
@@ -302,11 +302,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int calculateStars() {
-        int result = 5;
-        if (this.score > 9) result = 10;
-        else
-            result = this.score % 10;
+        int result = this.score;
+        if (result > 9) result = 10;
+        else if(result<0 ) result = 0;
         return result;
+    }
+
+    private int calculateScore() {
+        int result = this.score;
+        if (result<0) return 0;
+        return result*10;
     }
 
     private void launchTaskWithAnswer(String answer) {
