@@ -21,7 +21,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -289,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
         if (BLANK_NOT_PROCESSED.equals(fromUser)) {
             return true;
         } else {
+            fromDB=handleMultipleAnswers(fromDB,fromUser);
             boolean same = fromDB.trim().equals(fromUser.trim());
             if (same) {
                 this.score = this.score + 1;
@@ -299,6 +302,15 @@ public class MainActivity extends AppCompatActivity {
             return isAnswersAllGood && same;
         }
 
+    }
+
+    private String handleMultipleAnswers(String realAnswer, String userAnswer){
+        List<String> answers= Arrays.asList(realAnswer.split("-"));
+        if(answers.contains(userAnswer)){
+            return userAnswer;
+        } else{
+            return realAnswer;
+        }
     }
 
     private int calculateStars() {
