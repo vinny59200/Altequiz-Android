@@ -214,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
             return json;
         }
 
-        private String subGetFirstQuestionJSON() {
+        private String subGetFirstQuestionJSON()  {
             OkHttpClient clt = initRequest();
             logAltequiz("VV 100 getting first question.");
             String url = FIRST_URL_GET;
