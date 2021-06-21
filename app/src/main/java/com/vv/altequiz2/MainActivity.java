@@ -50,9 +50,9 @@ import okhttp3.RequestBody;
 public class MainActivity extends AppCompatActivity {
 
 
-    public static final String FIRST_URL_GET = "http://129.213.40.35:5000/api/v1/first/";
+    public static final String FIRST_URL_GET = "http://129.213.40.35:5000/api/v1/question/first/";
     public static final String URL_GET = "http://129.213.40.35:5000/api/v1/question/";
-    public static final String URL_POST = "http://129.213.40.35:5000/api/v1/send/";
+    public static final String URL_POST = "http://129.213.40.35:5000/api/v1/question/next/";
 
     public static final MediaType JSON
             = MediaType.get("application/json; charset=utf-8");
@@ -159,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 questionTextView.setText(String.format("Votre score est de %s points.",
                         calculateScore()));
             } else {
+                logAltequiz("VV 335:"+result);
                 question = new Gson().fromJson(result, Question.class);
                 nextId = question.getId();
                 handleDisplayWhenNotOver();
@@ -226,18 +227,18 @@ public class MainActivity extends AppCompatActivity {
                     .build();
             updateProgressBar(40);
             String json = null;
-            try (Response resp = clt.newCall(req).execute()) {
+            try (Response response = clt.newCall(req).execute()) {
                 updateProgressBar(60);
-                nextId = Integer.valueOf(resp.body().string());
-                logAltequiz("VV 100 first question id=" + nextId);
-                json = subGetQuestionJSON();
-                if (nextId == 0) throw new Exception();
+                json = response.body().string();
             } catch (Exception e) {
             }
             if (json == null) {
                 logAltequiz("VV 6661 retry GET first question JSON request call");
                 return subGetFirstQuestionJSON();
             } else {
+                Question q = new Gson().fromJson(json, Question.class);
+                isAnswersAllGood = true;
+                questionsStack.add(q);
                 return json;
             }
         }
@@ -264,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
                 Question q = new Gson().fromJson(json, Question.class);
                 isAnswersAllGood = isAnswersAllGood(q.getAnswer(), userAnswer);
                 q.setAnswer(userAnswer);
-                if (!BLANK_NOT_PROCESSED.equals(userAnswer)) questionsStack.add(q);
+                questionsStack.add(q);
                 json = new Gson().toJson(q, Question.class);
                 return json;
             }
