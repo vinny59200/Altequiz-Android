@@ -20,11 +20,11 @@ import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
     TextView questionTextView;
     TextView tipTextView;
+    Button answerButton;
     TextView answerATextView;
     TextView answerBTextView;
     TextView answerCTextView;
@@ -89,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         questionTextView = findViewById(R.id.textview);
+        answerButton = findViewById(R.id.answerbtn);
         answerATextView = findViewById(R.id.atv);
         answerBTextView = findViewById(R.id.btv);
         answerCTextView = findViewById(R.id.ctv);
@@ -98,8 +100,9 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.image);
         progressBar = findViewById(R.id.bar);
-        tipTextView = findViewById(R.id.answertv);
+        //tipTextView = findViewById(R.id.answertv);
 
+        declareAnswerbtn();
         declareReplaybtn();
         declareLinkbtn();
         declareAbtn();
@@ -127,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
     //    \_|  |_/\__,_|_|_| |_|         \_/\__,_|___/_|\_\
     //
 
-    private class Task extends AsyncTask<Void, Void, String> {
+    private class Task extends AsyncTask<Void, Void, Question> {
 
         String userAnswer;
 
@@ -138,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected String doInBackground(Void... params) {
+        protected Question doInBackground(Void... params) {
 
             updateProgressBar(20);
 
@@ -146,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(Question result) {
             super.onPostExecute(result);
 
             updateProgressBar(100);
@@ -159,14 +162,14 @@ public class MainActivity extends AppCompatActivity {
                 questionTextView.setText(String.format("Votre score est de %s points.",
                         calculateScore()));
             } else {
-                logAltequiz("VV 335:"+result);
-                question = new Gson().fromJson(result, Question.class);
+                logAltequiz("VV 335:" + result);
+                question = result;
                 nextId = question.getId();
                 handleDisplayWhenNotOver();
             }
             logAltequiz("VV 700 quest Id:" + nextId + ", count quest:" + questionsStack.size() +
                     ", perfect:" + isAnswersAllGood + " karma:" + question.getKarma());
-            logAltequiz(result);
+            logAltequiz(result.toString());
             enableButtons();
         }
 
@@ -181,9 +184,8 @@ public class MainActivity extends AppCompatActivity {
         //
 
         @Nullable
-        private String getQuestionJSON() {
-            OkHttpClient clt = initRequest();
-            String json = null;
+        private Question getQuestionJSON() {
+            Question json = null;
             while (json == null) {
                 if (questionsStack.isEmpty()) {
                     json = subGetFirstQuestionJSON();
@@ -192,22 +194,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (!questionsStack.isEmpty()) {
-                RequestBody body = RequestBody.create(json, JSON);
-                String url = URL_POST;
-                logAltequiz("VV 3333 POST: " + url + " for current question id:" + nextId);
-                Request req = new Request.Builder()
-                        .url(url)
-                        .post(body)
-                        .build();
+
                 updateProgressBar(80);
                 json = null;
-                try (Response resp = clt.newCall(req).execute()) {
-                    updateProgressBar(100);
-                    json = resp.body().string();
-                } catch (Exception e) {
-                    logAltequiz("VV 6663 Retry main POST sending question request call " +
-                            "for question id:" + nextId);
-                }
+                updateProgressBar(100);
+
+                Random randomizer = new Random();
+                json = QuestionsCollection.questions.get(randomizer.nextInt(QuestionsCollection.questions.size()));
+
                 if (json == null) {
                     return getQuestionJSON();
                 } else {
@@ -217,56 +211,46 @@ public class MainActivity extends AppCompatActivity {
             return json;
         }
 
-        private String subGetFirstQuestionJSON()  {
-            OkHttpClient clt = initRequest();
+        private Question subGetFirstQuestionJSON() {
             logAltequiz("VV 100 getting first question.");
-            String url = FIRST_URL_GET;
-            logAltequiz("VV 3331 GET: " + url);
-            Request req = new Request.Builder()
-                    .url(url)
-                    .build();
             updateProgressBar(40);
-            String json = null;
-            try (Response response = clt.newCall(req).execute()) {
-                updateProgressBar(60);
-                json = response.body().string();
-            } catch (Exception e) {
-            }
+            Question json = null;
+            updateProgressBar(60);
+
+            Random randomizer = new Random();
+            json = QuestionsCollection.questions.get(randomizer.nextInt(QuestionsCollection.questions.size()));
+
             if (json == null) {
                 logAltequiz("VV 6661 retry GET first question JSON request call");
                 return subGetFirstQuestionJSON();
             } else {
-                Question q = new Gson().fromJson(json, Question.class);
+                Question q = json;
                 isAnswersAllGood = true;
                 questionsStack.add(q);
                 return json;
             }
         }
 
-        private String subGetQuestionJSON() {
-            OkHttpClient clt = initRequest();
-            String url = URL_GET + nextId;
-            logAltequiz("VV 3332 GET: " + url);
-            Request req = new Request.Builder()
-                    .url(url)
-                    .build();
+        private Question subGetQuestionJSON() {
+
             updateProgressBar(40);
-            String json = null;
-            try (Response response = clt.newCall(req).execute()) {
-                updateProgressBar(60);
-                json = response.body().string();
-            } catch (Exception e) {
-            }
+            Question json = null;
+
+            updateProgressBar(60);
+
+            Random randomizer = new Random();
+            json = QuestionsCollection.questions.get(randomizer.nextInt(QuestionsCollection.questions.size()));
+
             if (json == null) {
                 logAltequiz("VV 6662 retry GET question JSON request call for question id:"
                         + nextId);
                 return subGetQuestionJSON();
             } else {
-                Question q = new Gson().fromJson(json, Question.class);
+                Question q = json;
                 isAnswersAllGood = isAnswersAllGood(q.getAnswer(), userAnswer);
                 q.setAnswer(userAnswer);
                 questionsStack.add(q);
-                json = new Gson().toJson(q, Question.class);
+                json = q;
                 return json;
             }
         }
@@ -292,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
         if (BLANK_NOT_PROCESSED.equals(fromUser)) {
             return true;
         } else {
-            fromDB=handleMultipleAnswers(fromDB,fromUser);
+            fromDB = handleMultipleAnswers(fromDB, fromUser);
             boolean same = fromDB.trim().equals(fromUser.trim());
             if (same) {
                 this.score = this.score + 1;
@@ -305,11 +289,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private String handleMultipleAnswers(String realAnswer, String userAnswer){
-        List<String> answers= Arrays.asList(realAnswer.split("-"));
-        if(answers.contains(userAnswer)){
+    private String handleMultipleAnswers(String realAnswer, String userAnswer) {
+        List<String> answers = Arrays.asList(realAnswer.split("-"));
+        if (answers.contains(userAnswer)) {
             return userAnswer;
-        } else{
+        } else {
             return realAnswer;
         }
     }
@@ -317,14 +301,14 @@ public class MainActivity extends AppCompatActivity {
     private int calculateStars() {
         int result = this.score;
         if (result > 9) result = 10;
-        else if(result<0 ) result = 0;
+        else if (result < 0) result = 0;
         return result;
     }
 
     private int calculateScore() {
         int result = this.score;
-        if (result<0) return 0;
-        return result*10;
+        if (result < 0) return 0;
+        return result * 10;
     }
 
     private void launchTaskWithAnswer(String answer) {
@@ -363,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleDisplayWhenNotOver() {
         questionTextView.setText(question.getQuestion());
         updateChoicesTextViews();
-        tipTextView.setText(question.getAnswer());
+        //tipTextView.setText(question.getAnswer());
         displayCDEFButtons();
         if (question.getChoices_count() == 2) {
             hideCDEFButtons();
@@ -407,7 +391,8 @@ public class MainActivity extends AppCompatActivity {
         hide();
         replayButton.setVisibility(View.VISIBLE);
         blogButton.setVisibility(View.VISIBLE);
-        tipTextView.setVisibility(View.GONE);
+        //tipTextView.setVisibility(View.GONE);
+        answerButton.setVisibility(View.GONE);
         answerATextView.setVisibility(View.INVISIBLE);
         answerBTextView.setVisibility(View.INVISIBLE);
         answerCTextView.setVisibility(View.INVISIBLE);
@@ -424,8 +409,22 @@ public class MainActivity extends AppCompatActivity {
                 Toast.LENGTH_SHORT).show();
     }
 
+    private void displayAnswerToast(String answer) {
+        Toast.makeText(getApplicationContext(),
+                answer,
+                Toast.LENGTH_SHORT).show();
+    }
+
     private void updateProgressBar(int step) {
         progressBar.setProgress(step);
+    }
+
+    private void declareAnswerbtn() {
+        replayButton = findViewById(R.id.answerbtn);
+        replayButton.setVisibility(View.VISIBLE);
+        replayButton.setOnClickListener(view -> {
+            displayAnswerToast(question.getAnswer());
+        });
     }
 
     private void declareReplaybtn() {
@@ -515,6 +514,7 @@ public class MainActivity extends AppCompatActivity {
     private void hide() {
         imageView.setVisibility(View.GONE);
         aButton.setVisibility(View.INVISIBLE);
+        answerButton.setVisibility(View.INVISIBLE);
         answerATextView.setVisibility(View.INVISIBLE);
         bButton.setVisibility(View.INVISIBLE);
         answerBTextView.setVisibility(View.INVISIBLE);
@@ -549,101 +549,5 @@ public class MainActivity extends AppCompatActivity {
         dButton.setEnabled(false);
         eButton.setEnabled(false);
         fButton.setEnabled(false);
-    }
-
-    //==============================================================================================
-    //    _____                              _____ _
-    //   |_   _|                            /  __ \ |
-    //     | | _ __  _ __   ___ _ __        | /  \/ | __ _ ___ ___
-    //     | || '_ \| '_ \ / _ \ '__|       | |   | |/ _` / __/ __|
-    //    _| || | | | | | |  __/ |          | \__/\ | (_| \__ \__ \
-    //    \___/_| |_|_| |_|\___|_|           \____/_|\__,_|___/___/
-    //
-
-    private class Question {
-
-        private int id;
-        private String question;
-        private String choices_content;
-        private String answer;
-        private int karma;
-        private int choices_count;
-
-        public int getId() {
-            return id;
-        }
-
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        public String getQuestion() {
-            return question;
-        }
-
-        public void setQuestion(String question) {
-            this.question = question;
-        }
-
-        public String getChoices_content() {
-            return choices_content;
-        }
-
-        public void setChoices_content(String choices_content) {
-            this.choices_content = choices_content;
-        }
-
-        public String getAnswer() {
-            return answer;
-        }
-
-        public void setAnswer(String answer) {
-            this.answer = answer;
-        }
-
-        public int getKarma() {
-            return karma;
-        }
-
-        public void setKarma(int karma) {
-            this.karma = karma;
-        }
-
-        public int getChoices_count() {
-            return choices_count;
-        }
-
-        public void setChoices_count(int choices_count) {
-            this.choices_count = choices_count;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Question question1 = (Question) o;
-            return id == question1.id &&
-                    choices_count == question1.choices_count &&
-                    question.equals(question1.question) &&
-                    choices_content.equals(question1.choices_content) &&
-                    answer.equals(question1.answer);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(id, question, choices_content, answer, choices_count);
-        }
-
-        @Override
-        public String toString() {
-            return "Question{" +
-                    "id=" + id +
-                    ", question='" + question + '\'' +
-                    ", choices_content='" + choices_content + '\'' +
-                    ", answer='" + answer + '\'' +
-                    ", karma=" + karma +
-                    ", choices_count=" + choices_count +
-                    '}';
-        }
     }
 }
